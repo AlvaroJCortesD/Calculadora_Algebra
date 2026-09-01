@@ -2,7 +2,6 @@
 from fractions import Fraction
 
 
-
 # Función auxiliar para convertir números normales a subíndices Unicode (ej: 1 -> ₁ , 2 -> ₂)
 def to_subscript(number):
     subscripts = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
@@ -31,12 +30,14 @@ def fmt_val(val):
     if isinstance(val, Fraction):
         if val.denominator == 1:
             return f"{val.numerator:6}"
-        return f"{val.numerator}/{val.denominator}":>6
+        texto = f"{val.numerator}/{val.denominator}"
+        return f"{texto:>6}"
     elif isinstance(val, float):
         frac = Fraction(val).limit_denominator(1000)
         if frac.denominator == 1:
             return f"{frac.numerator:6}"
-        return f"{frac.numerator}/{frac.denominator}":>6
+        texto = f"{frac.numerator}/{frac.denominator}"
+        return f"{texto:>6}"
     return f"{val:6}"
 
 
@@ -199,10 +200,10 @@ def verificar_solucion(matriz_original, vector_b, soluciones):
             for j in range(len(soluciones))
         )
         if suma != Fraction(vector_b[i]):
-            print(f"⚠️ Alerta: La solución no satisface la ecuación {i + 1}")
+            print(f" Alerta: La solución no satisface la ecuación {i + 1}")
             return False
 
     print(
-        "✅ Solución verificada con éxito sustituyendo en el sistema original."
+        " Solución verificada con éxito sustituyendo en el sistema original."
     )
     return True

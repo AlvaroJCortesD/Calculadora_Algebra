@@ -94,7 +94,8 @@ class Matrix:
         self.array[rows][columns] = new_value
 
     def gauss_jordan(self):
-        n_equations = self.rows
+        m_filas = self.rows
+        n_variables = self.columns - 1  # Variables excluyendo el vector b
         clone = [[Fraction(val) for val in row] for row in self.array]
 
         def imprimir_paso(matriz_clon):
@@ -104,92 +105,117 @@ class Matrix:
         print("\n=== INICIANDO REDUCCIÓN GAUSS-JORDAN ===")
         print("Transformando la matriz a la FORMA ESCALONADA REDUCIDA...")
 
-        for c in range(n_equations):
+        columnas_pivote = []
+        fila_pivote = 0
+
+        # Iteración general por columnas para soportar matrices m x n
+        for c in range(n_variables):
+            if fila_pivote >= m_filas:
+                break
+
             print(f"\nProcesando Columna {c + 1}:")
 
             # 1. Pivoteo parcial
-            max_row = c
-            for r in range(c + 1, n_equations):
+            max_row = fila_pivote
+            for r in range(fila_pivote + 1, m_filas):
                 if abs(clone[r][c]) > abs(clone[max_row][c]):
                     max_row = r
 
-            if max_row != c:
-                clone[c], clone[max_row] = clone[max_row], clone[c]
+            if clone[max_row][c] == 0:
+                print(f"-> La columna {c + 1} no tiene pivote (variable libre).")
+                continue
+
+            if max_row != fila_pivote:
+                clone[fila_pivote], clone[max_row] = clone[max_row], clone[fila_pivote]
                 print(
-                    f"-> Se intercambió la fila {c + 1} con la fila {max_row + 1} (Pivoteo Parcial):"
+                    f"-> Se intercambió la fila {fila_pivote + 1} con la fila {max_row + 1} (Pivoteo Parcial):"
                 )
                 imprimir_paso(clone)
 
-            # Verificación de pivote nulo / inconsistencia
-            if clone[c][c] == 0:
-                coeficientes_cero = all(val == 0 for val in clone[c][:-1])
-                termino_independiente = clone[c][-1]
-
-                print(
-                    "\n================ RESULTADO DEL ANÁLISIS ================"
-                )
-                if coeficientes_cero and termino_independiente != 0:
-                    print("TIPO DE SISTEMA: INCONSISTENTE")
-                    print(
-                        "CANTIDAD DE SOLUCIONES: Sin solución (0 soluciones)."
-                    )
-                    print(
-                        "RAZÓN: Se obtuvo una contradicción matemática del tipo [ 0 0 ... 0 │ k ] con k ≠ 0."
-                    )
-                else:
-                    print("TIPO DE SISTEMA: CONSISTENTE INDETERMINADO")
-                    print("CANTIDAD DE SOLUCIONES: Infinitas soluciones.")
-                    print(
-                        "RAZÓN: Existe al menos una variable libre en el sistema."
-                    )
-                print(
-                    "========================================================\n"
-                )
-                return None
-
             # 2. Hacer el pivote igual a 1
-            pivot = clone[c][c]
-            for j in range(c, len(clone[c])):
-                clone[c][j] /= pivot
+            pivot = clone[fila_pivote][c]
+            for j in range(self.columns):
+                clone[fila_pivote][j] /= pivot
             print(
-                f"-> Fila {c + 1} dividida entre su pivote ({pivot}) para obtener el 1 principal:"
+                f"-> Fila {fila_pivote + 1} dividida entre su pivote ({pivot}) para obtener el 1 principal:"
             )
             imprimir_paso(clone)
 
-            # 3. Hacer ceros en el resto de la columna
-            for f in range(n_equations):
-                if f != c:
+            # 3. Hacer ceros en toda la columna (arriba y abajo del pivote)
+            for f in range(m_filas):
+                if f != fila_pivote:
                     factor = clone[f][c]
-                    for j in range(c, len(clone[f])):
-                        clone[f][j] -= factor * clone[c][j]
+                    for j in range(self.columns):
+                        clone[f][j] -= factor * clone[fila_pivote][j]
 
             print(
                 f"-> Ceros generados arriba y abajo del pivote de la columna {c + 1}:"
             )
             imprimir_paso(clone)
 
-        print("\n=== PROCESO DE REDUCCIÓN FINALIZADO ===")
-        print(
-            "ESTADO DE LA MATRIZ: La matriz se encuentra en FORMA ESCALONADA REDUCIDA POR FILAS."
-        )
+            columnas_pivote.append(c)
+            fila_pivote += 1
 
-        answers = []
+        print("\n=== PROCESO DE REDUCCIÓN FINALIZADO ===")
+        print("ESTADO DE LA MATRIZ: La matriz se encuentra en FORMA ESCALONADA REDUCIDA POR FILAS.")
+
+        # Identificación de variables libres
+        variables_libres = [col for col in range(n_variables) if col not in columnas_pivote]
+
+        # Evaluación del tipo de sistema
+        inconsistente = False
         for row in clone:
-            val = row[-1]
-            if isinstance(val, Fraction) and val.denominator == 1:
-                answers.append(val.numerator)
-            else:
-                answers.append(val)
+            if all(val == 0 for val in row[:-1]) and row[-1] != 0:
+                inconsistente = True
+                break
 
         print("\n================ RESULTADO DEL ANÁLISIS ================")
-        print("TIPO DE SISTEMA: CONSISTENTE DETERMINADO")
-        print("CANTIDAD DE SOLUCIONES: Solución ÚNICA.")
-        print("========================================================\n")
+        if inconsistente:
+            print("TIPO DE SISTEMA: INCONSISTENTE")
+            print("CANTIDAD DE SOLUCIONES: Sin solución (0 soluciones).")
+            print("RAZÓN: Se obtuvo una contradicción del tipo [ 0 0 ... 0 │ k ] con k ≠ 0.")
+            print("========================================================\n")
+            return clone, columnas_pivote, variables_libres, None, None
 
-        return answers
+        elif len(variables_libres) > 0:
+            print("TIPO DE SISTEMA: CONSISTENTE INDETERMINADO")
+            print("CANTIDAD DE SOLUCIONES: Infinitas soluciones.")
+            print("RAZÓN: Existe al menos una variable libre en el sistema.\n")
 
-    def __str__(self):
-        return format_matrix(self.array)
+            # Construcción de la forma vectorial paramétrica
+            v_particular = [Fraction(0)] * n_variables
+            v_direccionales = {lib: [Fraction(0)] * n_variables for lib in variables_libres}
+
+            for lib in variables_libres:
+                v_direccionales[lib][lib] = Fraction(1)
+
+            for idx, p in enumerate(columnas_pivote):
+                v_particular[p] = clone[idx][-1]
+                for lib in variables_libres:
+                    v_direccionales[lib][p] = -clone[idx][lib]
+
+            forma_vectorial = f"Vector X = {v_particular}"
+            for lib in variables_libres:
+                sub = to_subscript(lib + 1)
+                forma_vectorial += f" + x{sub} * {v_direccionales[lib]}"
+
+            print("========================================================\n")
+            return clone, columnas_pivote, variables_libres, None, forma_vectorial
+
+        else:
+            print("TIPO DE SISTEMA: CONSISTENTE DETERMINADO")
+            print("CANTIDAD DE SOLUCIONES: Solución ÚNICA.")
+            print("========================================================\n")
+
+            answers = []
+            for row in clone:
+                val = row[-1]
+                if isinstance(val, Fraction) and val.denominator == 1:
+                    answers.append(val.numerator)
+                else:
+                    answers.append(val)
+
+            return clone, columnas_pivote, variables_libres, answers, None
 
 
 # Comprobación automática

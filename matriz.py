@@ -222,14 +222,14 @@ class Matrix:
                 for lib in variables_libres:
                     v_direccionales[lib][p] = -clone[idx][lib]
 
-            # Asignación de parámetros (s, t, u...) a las variables libres
-            letras_param = ["s", "t", "u", "v", "w"]
+            # Asignación de parámetros (S, T, U...) a las variables libres
+            letras_param = ["S", "T", "U", "V", "W"]
             mapa_param = {}
             for i, lib in enumerate(variables_libres):
                 p_nombre = (
                     letras_param[i]
                     if i < len(letras_param)
-                    else f"r{i+1}"
+                    else f"R{i+1}"
                 )
                 mapa_param[lib] = p_nombre
 
@@ -267,32 +267,34 @@ class Matrix:
             )
 
             # Formatear Vectores en Columna
-            vector_str = []
-            vector_str.append("\nSolución General (Forma Vectorial):")
-
-            # Columna [x1, x2, ...]
             col_x = [f"x{to_subscript(i+1)}" for i in range(n_variables)]
 
-            # Función auxiliar para convertir vectores a formato numérico legible
             def build_col(vector):
                 return [formatear_numero(v) for v in vector]
 
-            cols_to_print = [("X", col_x), ("=", build_col(v_particular))]
+            cols_to_print = [("", col_x), ("=", build_col(v_particular))]
             for lib in variables_libres:
                 cols_to_print.append(
                     (f"+ {mapa_param[lib]}", build_col(v_direccionales[lib]))
                 )
 
+            # Encontrar el valor más largo para dar el mismo ancho a todas las celdas
             max_len = max(
                 len(val)
                 for _, list_v in cols_to_print
                 for val in list_v
             )
 
+            # Calcular la fila central para alinear el operador "=" y "+ S" a la mitad de los corchetes
+            mid_row = (n_variables - 1) // 2
+
             lines_out = ["" for _ in range(n_variables)]
             for idx_c, (header, list_v) in enumerate(cols_to_print):
+                op_width = len(header)
                 for i in range(n_variables):
                     val = list_v[i].center(max_len)
+                    
+                    # Generación de corchetes vectoriales
                     if n_variables == 1:
                         bracket = f"[ {val} ]"
                     elif i == 0:
@@ -302,15 +304,16 @@ class Matrix:
                     else:
                         bracket = f"│ {val} │"
 
-                    if header in ["X", "="]:
-                        prefix = f"{header} = " if header == "X" else "= "
-                        lines_out[i] += (
-                            f"{prefix if idx_c <= 1 and header == '=' else ''}{bracket} "
-                        )
+                    # Colocar los operadores (+ S, =) ÚNICAMENTE a la altura de la fila central
+                    if header == "":
+                        lines_out[i] += f"{bracket} "
                     else:
-                        lines_out[i] += f"{header} {bracket} "
+                        op_str = header if i == mid_row else " " * op_width
+                        lines_out[i] += f" {op_str} {bracket} "
 
-            solucion_vectorial_final = "\n".join(desglose) + "\n\n" + "\n".join(lines_out)
+            solucion_vectorial_final = (
+                "\n".join(desglose) + "\n\nSolución General (Forma Vectorial):\n" + "\n".join(lines_out)
+            )
 
             print("========================================================\n")
             return (

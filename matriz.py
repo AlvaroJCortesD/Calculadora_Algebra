@@ -76,9 +76,10 @@ def format_matrix(matriz_datos):
     return "\n".join(resultado)
 
 
-# Clase Matrix
+# Clase Matrix para representar y operar sobre matrices de ecuaciones
 class Matrix:
 
+    # Método constructor de la clase
     def __init__(self, rows, columns, valor_inicial=0.0):
         self.rows = rows
         self.columns = columns
@@ -86,6 +87,7 @@ class Matrix:
             [float(valor_inicial) for _ in range(columns)] for _ in range(rows)
         ]
 
+    # Método para agregar el vector independiente b a la matriz
     def add_vector_b(self, vector_b):
         if len(vector_b) != self.rows:
             raise ValueError(
@@ -97,14 +99,17 @@ class Matrix:
 
         self.columns += 1
 
+    # Método para modificar el valor de un elemento específico
     def modify(self, rows, columns, new_value):
         self.array[rows][columns] = float(new_value)
 
+    # Método principal para realizar la eliminación Gauss-Jordan
     def gauss_jordan(self):
         m_filas = self.rows
         n_variables = self.columns - 1
         clone = [[float(val) for val in row] for row in self.array]
 
+        # Función auxiliar para imprimir la matriz en cada paso
         def imprimir_paso(matriz_clon):
             print(format_matrix(matriz_clon))
             print("-" * 50)
@@ -121,6 +126,7 @@ class Matrix:
 
             print(f"\nProcesando Columna {c + 1}:")
 
+            # Buscar la fila con el valor máximo para el pivoteo
             max_row = fila_pivote
             for r in range(fila_pivote + 1, m_filas):
                 if abs(clone[r][c]) > abs(clone[max_row][c]):
@@ -170,10 +176,12 @@ class Matrix:
             "ESTADO DE LA MATRIZ: La matriz se encuentra en FORMA ESCALONADA REDUCIDA POR FILAS."
         )
 
+        # Identificar las variables libres
         variables_libres = [
             col for col in range(n_variables) if col not in columnas_pivote
         ]
 
+        # Verificar inconsistencia en el sistema
         inconsistente = False
         for row in clone:
             if (
@@ -264,8 +272,8 @@ class Matrix:
 
             # Columna [x1, x2, ...]
             col_x = [f"x{to_subscript(i+1)}" for i in range(n_variables)]
-            
-            # Bloques
+
+            # Función auxiliar para convertir vectores a formato numérico legible
             def build_col(vector):
                 return [formatear_numero(v) for v in vector]
 
@@ -321,6 +329,7 @@ class Matrix:
             answers = [row[-1] for row in clone]
             return clone, columnas_pivote, variables_libres, answers, None
 
+    # Método para convertir el objeto Matrix a texto
     def __str__(self):
         return format_matrix(self.array)
 

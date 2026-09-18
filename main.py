@@ -45,7 +45,6 @@ def main():
     matriz_rref, pivotes, libres, soluciones, forma_vectorial = (
         matrix.gauss_jordan()
     )
-
     # Dar formato de texto a las posiciones de pivotes y variables del sistema
     print("--- IDENTIFICACIÓN DE PIVOTES Y VARIABLES ---")
     cols_pivote_str = (

@@ -285,7 +285,7 @@ class Matrix:
                 for val in list_v
             )
 
-            # Calcular la fila central para alinear el operador "=" y "+ S" a la mitad de los corchetes
+            # Calcular la fila central para alinear los operadores
             mid_row = (n_variables - 1) // 2
 
             lines_out = ["" for _ in range(n_variables)]
@@ -314,6 +314,9 @@ class Matrix:
             solucion_vectorial_final = (
                 "\n".join(desglose) + "\n\nSolución General (Forma Vectorial):\n" + "\n".join(lines_out)
             )
+
+            # Imprimir directamente en consola la solución vectorial construida
+            print(solucion_vectorial_final)
 
             print("========================================================\n")
             return (

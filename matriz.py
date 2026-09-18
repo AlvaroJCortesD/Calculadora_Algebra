@@ -1,14 +1,12 @@
 #! /usr/bin/env python3
 from fractions import Fraction
 
-
-# Función auxiliar para convertir números normales a subíndices Unicode (ej: 1 -> ₁ , 2 -> ₂)
+# Convierte números enteros a subíndices en formato Unicode (ej: 1 -> ₁).
 def to_subscript(number):
     subscripts = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
     return str(number).translate(subscripts)
 
-
-# Función auxiliar para solicitar entrada al usuario (soporta enteros, decimales y fracciones como '1/3')
+# Solicita entrada al usuario permitiendo enteros, decimales y fracciones (ej: 1/3).
 def asking_for_input(message, type=float):
     while True:
         info = input(message.strip())
@@ -20,12 +18,9 @@ def asking_for_input(message, type=float):
                 return valor.numerator
             return valor
         except ValueError:
-            print(
-                "Entrada invalida. Por favor, ingresa un numero entero, decimal o fraccion (ej: 3, 0.5 o 1/3)."
-            )
+            print("Entrada invalida. Por favor, ingresa un numero entero, decimal o fraccion (ej: 3, 0.5 o 1/3).")
 
-
-# Función auxiliar para dar formato de texto a cada elemento
+# Formatea valores numéricos para mantener alineación de columnas al imprimir.
 def fmt_val(val):
     if isinstance(val, Fraction):
         if val.denominator == 1:
@@ -40,22 +35,18 @@ def fmt_val(val):
         return f"{texto:>6}"
     return f"{val:6}"
 
-
-# Función auxiliar para formatear una matriz en un único bloque de corchetes
+# Genera una representación en texto con bordes y línea divisoria para matriz aumentada [A|b].
 def format_matrix(matriz_datos):
     lines = []
     for row in matriz_datos:
-        datos_A = row[:-1]  # Coeficientes
-        valor_b = row[-1]  # Término independiente
-
+        datos_A = row[:-1]
+        valor_b = row[-1]
         parte_A = "  ".join(fmt_val(num) for num in datos_A)
         fmt_b = fmt_val(valor_b)
-
         lines.append(f"{parte_A}  │  {fmt_b}")
 
     n = len(lines)
     resultado = []
-
     for i, line in enumerate(lines):
         if n == 1:
             resultado.append(f"[ {line} ]")
@@ -65,39 +56,116 @@ def format_matrix(matriz_datos):
             resultado.append(f"└ {line} ┘")
         else:
             resultado.append(f"│ {line} │")
-
     return "\n".join(resultado)
 
+# Realiza la suma componente a componente entre dos vectores u + v de R^n.
+def sumar_vectores(u, v):
+    if len(u) != len(v):
+        raise ValueError("Los vectores deben tener la misma dimensión.")
+    return [Fraction(u[i]) + Fraction(v[i]) for i in range(len(u))]
 
-# Clase que representa una matriz matemática y sus operaciones
+# Realiza la resta componente a componente entre dos vectores u - v de R^n.
+def restar_vectores(u, v):
+    if len(u) != len(v):
+        raise ValueError("Los vectores deben tener la misma dimensión.")
+    return [Fraction(u[i]) - Fraction(v[i]) for i in range(len(u))]
+
+# Multiplica un escalar c por cada componente de un vector v.
+def escalar_por_vector(c, v):
+    return [Fraction(c) * Fraction(x) for x in v]
+
+# Evalúa mediante Gauss-Jordan si el vector b se puede expresar como combinación lineal del conjunto.
+def es_combinacion_lineal(conjunto_vectores, b):
+    m = len(b)
+    k = len(conjunto_vectores)
+    mat = Matrix(m, k)
+    for j in range(k):
+        if len(conjunto_vectores[j]) != m:
+            raise ValueError("Todos los vectores deben tener la misma dimensión que b.")
+        for i in range(m):
+            mat.modify(i, j, conjunto_vectores[j][i])
+    
+    mat.add_vector_b(b)
+    _, _, _, soluciones, forma_vectorial = mat.gauss_jordan()
+    return (soluciones is not None or forma_vectorial is not None)
+
+# Clase para representar y realizar operaciones sobre matrices rectangulares de m x n.
 class Matrix:
-
+    # Inicializa una matriz de tamaño rows x columns rellena con un valor inicial.
     def __init__(self, rows, columns, valor_inicial=0):
         self.rows = rows
         self.columns = columns
-        self.array = [
-            [valor_inicial for _ in range(columns)] for _ in range(rows)
-        ]
+        self.array = [[valor_inicial for _ in range(columns)] for _ in range(rows)]
 
+    # Anexa el vector columna b a la derecha para transformar la matriz en [A|b].
     def add_vector_b(self, vector_b):
         if len(vector_b) != self.rows:
-            raise ValueError(
-                "El numero de elementos de vector b debe ser igual al numero de filas"
-            )
-
+            raise ValueError("El numero de elementos de vector b debe ser igual al numero de filas")
         for i in range(self.rows):
             self.array[i].append(vector_b[i])
-
         self.columns += 1
 
+    # Modifica el valor almacenado en una posición específica (fila, columna) de la matriz.
     def modify(self, rows, columns, new_value):
         self.array[rows][columns] = new_value
 
+    # Retorna la representación en texto de la matriz estándar encerrada entre corchetes.
+    def __str__(self):
+        lines = []
+        for row in self.array:
+            parte = "  ".join(fmt_val(num) for num in row)
+            lines.append(f"│ {parte} │")
+        return "\n".join(lines)
+
+    # Realiza la suma elemento a elemento entre la matriz actual y B (A + B).
+    def sumar(self, B):
+        if self.rows != B.rows or self.columns != B.columns:
+            raise ValueError("Incompatibilidad de dimensiones: Las matrices deben ser de igual tamaño (m x n).")
+        res = Matrix(self.rows, self.columns)
+        for i in range(self.rows):
+            for j in range(self.columns):
+                res.modify(i, j, Fraction(self.array[i][j]) + Fraction(B.array[i][j]))
+        return res
+
+    # Realiza la resta elemento a elemento entre la matriz actual y B (A - B).
+    def restar(self, B):
+        if self.rows != B.rows or self.columns != B.columns:
+            raise ValueError("Incompatibilidad de dimensiones: Las matrices deben ser de igual tamaño (m x n).")
+        res = Matrix(self.rows, self.columns)
+        for i in range(self.rows):
+            for j in range(self.columns):
+                res.modify(i, j, Fraction(self.array[i][j]) - Fraction(B.array[i][j]))
+        return res
+
+    # Multiplica cada entrada de la matriz por una constante escalar c.
+    def escalar_mult(self, c):
+        res = Matrix(self.rows, self.columns)
+        for i in range(self.rows):
+            for j in range(self.columns):
+                res.modify(i, j, Fraction(c) * Fraction(self.array[i][j]))
+        return res
+
+    # Calcula el producto matricial A * B mediante un algoritmo de 3 bucles anidados (i-j-k).
+    def multiplicar(self, B):
+        if self.columns != B.rows:
+            raise ValueError(f"Incompatibilidad de dimensiones: Columnas de A ({self.columns}) ≠ Filas de B ({B.rows}).")
+        
+        res = Matrix(self.rows, B.columns)
+        for i in range(self.rows):
+            for j in range(B.columns):
+                suma = Fraction(0)
+                for k in range(self.columns):
+                    suma += Fraction(self.array[i][k]) * Fraction(B.array[k][j])
+                res.modify(i, j, suma)
+        return res
+
+    # Ejecuta la reducción por filas de Gauss-Jordan imprimiendo el procedimiento paso a paso.
     def gauss_jordan(self):
         m_filas = self.rows
-        n_variables = self.columns - 1  # Variables excluyendo el vector b
+        n_variables = self.columns - 1
         clone = [[Fraction(val) for val in row] for row in self.array]
 
+        # Muestra en consola el estado actual de la matriz durante cada transformación.
         def imprimir_paso(matriz_clon):
             print(format_matrix(matriz_clon))
             print("-" * 50)
@@ -108,14 +176,11 @@ class Matrix:
         columnas_pivote = []
         fila_pivote = 0
 
-        # Iteración general por columnas para soportar matrices m x n
         for c in range(n_variables):
             if fila_pivote >= m_filas:
                 break
 
             print(f"\nProcesando Columna {c + 1}:")
-
-            # 1. Pivoteo parcial
             max_row = fila_pivote
             for r in range(fila_pivote + 1, m_filas):
                 if abs(clone[r][c]) > abs(clone[max_row][c]):
@@ -127,30 +192,22 @@ class Matrix:
 
             if max_row != fila_pivote:
                 clone[fila_pivote], clone[max_row] = clone[max_row], clone[fila_pivote]
-                print(
-                    f"-> Se intercambió la fila {fila_pivote + 1} con la fila {max_row + 1} (Pivoteo Parcial):"
-                )
+                print(f"-> Se intercambió la fila {fila_pivote + 1} con la fila {max_row + 1} (Pivoteo Parcial):")
                 imprimir_paso(clone)
 
-            # 2. Hacer el pivote igual a 1
             pivot = clone[fila_pivote][c]
             for j in range(self.columns):
                 clone[fila_pivote][j] /= pivot
-            print(
-                f"-> Fila {fila_pivote + 1} dividida entre su pivote ({pivot}) para obtener el 1 principal:"
-            )
+            print(f"-> Fila {fila_pivote + 1} dividida entre su pivote ({pivot}) para obtener el 1 principal:")
             imprimir_paso(clone)
 
-            # 3. Hacer ceros en toda la columna (arriba y abajo del pivote)
             for f in range(m_filas):
                 if f != fila_pivote:
                     factor = clone[f][c]
                     for j in range(self.columns):
                         clone[f][j] -= factor * clone[fila_pivote][j]
 
-            print(
-                f"-> Ceros generados arriba y abajo del pivote de la columna {c + 1}:"
-            )
+            print(f"-> Ceros generados arriba y abajo del pivote de la columna {c + 1}:")
             imprimir_paso(clone)
 
             columnas_pivote.append(c)
@@ -159,10 +216,8 @@ class Matrix:
         print("\n=== PROCESO DE REDUCCIÓN FINALIZADO ===")
         print("ESTADO DE LA MATRIZ: La matriz se encuentra en FORMA ESCALONADA REDUCIDA POR FILAS.")
 
-        # Identificación de variables libres
         variables_libres = [col for col in range(n_variables) if col not in columnas_pivote]
 
-        # Evaluación del tipo de sistema
         inconsistente = False
         for row in clone:
             if all(val == 0 for val in row[:-1]) and row[-1] != 0:
@@ -182,7 +237,6 @@ class Matrix:
             print("CANTIDAD DE SOLUCIONES: Infinitas soluciones.")
             print("RAZÓN: Existe al menos una variable libre en el sistema.\n")
 
-            # Construcción de la forma vectorial paramétrica
             v_particular = [Fraction(0)] * n_variables
             v_direccionales = {lib: [Fraction(0)] * n_variables for lib in variables_libres}
 
@@ -217,8 +271,7 @@ class Matrix:
 
             return clone, columnas_pivote, variables_libres, answers, None
 
-
-# Comprobación automática
+# Sustituye la solución calculada en la matriz original para comprobar que A*x sea igual a b.
 def verificar_solucion(matriz_original, vector_b, soluciones):
     for i in range(len(matriz_original)):
         suma = sum(
@@ -229,7 +282,5 @@ def verificar_solucion(matriz_original, vector_b, soluciones):
             print(f" Alerta: La solución no satisface la ecuación {i + 1}")
             return False
 
-    print(
-        " Solución verificada con éxito sustituyendo en el sistema original."
-    )
+    print(" Solución verificada con éxito sustituyendo en el sistema original.")
     return True

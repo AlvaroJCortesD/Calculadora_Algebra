@@ -51,14 +51,18 @@ def fmt_val(val):
 # Función auxiliar para formatear una matriz en un único bloque de corchetes
 def format_matrix(matriz_datos):
     lines = []
+    has_augmented = len(matriz_datos) > 0 and len(matriz_datos[0]) > 1
+
     for row in matriz_datos:
-        datos_A = row[:-1]
-        valor_b = row[-1]
-
-        parte_A = "  ".join(fmt_val(num) for num in datos_A)
-        fmt_b = fmt_val(valor_b)
-
-        lines.append(f"{parte_A}  │  {fmt_b}")
+        # Detectar si es matriz aumentada
+        if isinstance(row, list):
+            datos_A = row[:-1]
+            valor_b = row[-1]
+            parte_A = "  ".join(fmt_val(num) for num in datos_A)
+            fmt_b = fmt_val(valor_b)
+            lines.append(f"{parte_A}  │  {fmt_b}")
+        else:
+            lines.append("  ".join(fmt_val(num) for num in row))
 
     n = len(lines)
     resultado = []
@@ -76,7 +80,99 @@ def format_matrix(matriz_datos):
     return "\n".join(resultado)
 
 
-# Clase Matrix para representar y operar sobre matrices de ecuaciones
+# Función auxiliar para formatear matriz simple sin barra vertical
+def format_simple_matrix(matriz_datos):
+    lines = []
+    for row in matriz_datos:
+        linea = "  ".join(fmt_val(num) for num in row)
+        lines.append(linea)
+
+    n = len(lines)
+    resultado = []
+    for i, line in enumerate(lines):
+        if n == 1:
+            resultado.append(f"[ {line} ]")
+        elif i == 0:
+            resultado.append(f"┌ {line} ┐")
+        elif i == n - 1:
+            resultado.append(f"└ {line} ┘")
+        else:
+            resultado.append(f"│ {line} │")
+
+    return "\n".join(resultado)
+
+
+# ==============================================================================
+# MÓDULO DE VECTORES (R^n)
+# ==============================================================================
+
+
+def vector_suma(v1, v2):
+    if len(v1) != len(v2):
+        raise ValueError("Los vectores deben tener la misma dimensión para sumarse.")
+    return [v1[i] + v2[i] for i in range(len(v1))]
+
+
+def vector_resta(v1, v2):
+    if len(v1) != len(v2):
+        raise ValueError("Los vectores deben tener la misma dimensión para restarse.")
+    return [v1[i] - v2[i] for i in range(len(v1))]
+
+
+def vector_por_escalar(c, v):
+    return [c * val for val in v]
+
+
+def es_combinacion_lineal(vectores_v, b):
+    k = len(vectores_v)
+    if k == 0:
+        return False, "No se proporcionaron vectores."
+
+    n = len(vectores_v[0])
+    if len(b) != n:
+        return False, f"El vector b debe tener la misma dimensión n={n}."
+
+    for i, v in enumerate(vectores_v):
+        if len(v) != n:
+            return False, f"El vector v_{i+1} no tiene dimensión n={n}."
+
+    # Construir matriz A de dimensiones n x k usando los vectores_v como columnas
+    matriz_comb = Matrix(n, k)
+    for j, v in enumerate(vectores_v):
+        for i in range(n):
+            matriz_comb.modify(i, j, v[i])
+
+    matriz_comb.add_vector_b(b)
+
+    print("\n--- MATRIZ DEL SISTEMA DE COMBINACIÓN LINEAL [ A | b ] ---")
+    print(matriz_comb)
+
+    (
+        clone,
+        pivotes,
+        libres,
+        soluciones,
+        forma_vectorial,
+    ) = matriz_comb.gauss_jordan()
+
+    # Verificar si es inconsistente
+    inconsistente = False
+    for row in clone:
+        if all(abs(val) < 1e-9 for val in row[:-1]) and abs(row[-1]) > 1e-9:
+            inconsistente = True
+            break
+
+    if inconsistente:
+        return False, "El vector b NO es combinación lineal del conjunto de vectores."
+    else:
+        return True, "El vector b SÍ es combinación lineal del conjunto de vectores."
+
+
+# ==============================================================================
+# CLASE MATRIX PARA REPRESENTAR Y OPERAR SOBRE MATRICES DE ECUACIONES
+# ==============================================================================
+
+
 class Matrix:
 
     # Método constructor de la clase
@@ -102,6 +198,50 @@ class Matrix:
     # Método para modificar el valor de un elemento específico
     def modify(self, rows, columns, new_value):
         self.array[rows][columns] = float(new_value)
+
+    # Suma de matrices
+    def sumar(self, otra_matriz):
+        if self.rows != otra_matriz.rows or self.columns != otra_matriz.columns:
+            raise ValueError("Las matrices deben tener las mismas dimensiones (m x n).")
+        resultado = Matrix(self.rows, self.columns)
+        for i in range(self.rows):
+            for j in range(self.columns):
+                resultado.modify(i, j, self.array[i][j] + otra_matriz.array[i][j])
+        return resultado
+
+    # Resta de matrices
+    def restar(self, otra_matriz):
+        if self.rows != otra_matriz.rows or self.columns != otra_matriz.columns:
+            raise ValueError("Las matrices deben tener las mismas dimensiones (m x n).")
+        resultado = Matrix(self.rows, self.columns)
+        for i in range(self.rows):
+            for j in range(self.columns):
+                resultado.modify(i, j, self.array[i][j] - otra_matriz.array[i][j])
+        return resultado
+
+    # Multiplicación por escalar
+    def escalar_mult(self, c):
+        resultado = Matrix(self.rows, self.columns)
+        for i in range(self.rows):
+            for j in range(self.columns):
+                resultado.modify(i, j, c * self.array[i][j])
+        return resultado
+
+    # Multiplicación de matrices (A x B)
+    def multiplicar(self, otra_matriz):
+        if self.columns != otra_matriz.rows:
+            raise ValueError(
+                f"No se pueden multiplicar: columnas de A ({self.columns}) != filas de B ({otra_matriz.rows})."
+            )
+        resultado = Matrix(self.rows, otra_matriz.columns)
+        for i in range(self.rows):
+            for j in range(otra_matriz.columns):
+                val = sum(
+                    self.array[i][k] * otra_matriz.array[k][j]
+                    for k in range(self.columns)
+                )
+                resultado.modify(i, j, val)
+        return resultado
 
     # Método principal para realizar la eliminación Gauss-Jordan
     def gauss_jordan(self):
@@ -337,6 +477,8 @@ class Matrix:
 
     # Método para convertir el objeto Matrix a texto
     def __str__(self):
+        if self.columns > 0 and len(self.array) > 0:
+            return format_simple_matrix(self.array)
         return format_matrix(self.array)
 
 

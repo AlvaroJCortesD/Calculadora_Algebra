@@ -284,3 +284,31 @@ def verificar_solucion(matriz_original, vector_b, soluciones):
 
     print(" Solución verificada con éxito sustituyendo en el sistema original.")
     return True
+
+
+# Evalúa si el sistema es homogéneo (si todos los elementos del vector b son cero).
+def es_homogeneo(vector_b):
+    return all(Fraction(val) == 0 for val in vector_b)
+
+
+# Evalúa la dependencia lineal de los vectores columna de una matriz.
+def analizar_dependencia_lineal(matriz_A):
+    # Se crea un vector de ceros para formar el sistema homogéneo Ax = 0
+    b_cero = [Fraction(0) for _ in range(matriz_A.rows)]
+
+    # Clonamos la matriz en una nueva instancia para no alterar la original
+    mat_eval = Matrix(matriz_A.rows, matriz_A.columns)
+    for i in range(matriz_A.rows):
+        for j in range(matriz_A.columns):
+            mat_eval.modify(i, j, matriz_A.array[i][j])
+
+    # Añadimos el vector b (puros ceros)
+    mat_eval.add_vector_b(b_cero)
+
+    # Ejecutamos Gauss-Jordan.
+    # Si hay variables libres, el sistema tiene soluciones no triviales (Linealmente Dependiente)
+    # Si no hay variables libres, solo tiene la solución trivial (Linealmente Independiente)
+    _, _, variables_libres, _, _ = mat_eval.gauss_jordan()
+
+    # Retorna True si es linealmente independiente (0 variables libres)
+    return len(variables_libres) == 0

@@ -2,6 +2,11 @@ from fractions import Fraction
 from teoremas import resumen_teoremas
 
 
+# ======================================================
+# FUNCIONES GENERALES
+# ======================================================
+
+# Solicita un número al usuario y permite ingresar fracciones.
 def asking_for_input(message, type=float):
     while True:
         info = input(message.strip())
@@ -24,10 +29,9 @@ def asking_for_input(message, type=float):
             )
 
 
+# Da formato a los valores de las matrices.
 def fmt_val(val):
-
     if isinstance(val, Fraction):
-
         if val.denominator == 1:
             return f"{val.numerator:6}"
 
@@ -35,7 +39,6 @@ def fmt_val(val):
         return f"{texto:>6}"
 
     elif isinstance(val, float):
-
         frac = Fraction(val).limit_denominator(1000)
 
         if frac.denominator == 1:
@@ -47,18 +50,16 @@ def fmt_val(val):
     return f"{val:6}"
 
 
+# Formatea una matriz aumentada [A | b].
 def format_matrix(matriz_datos):
-
     lines = []
 
     for row in matriz_datos:
-
         datos_A = row[:-1]
         valor_b = row[-1]
 
         parte_A = "  ".join(
-            fmt_val(num)
-            for num in datos_A
+            fmt_val(num) for num in datos_A
         )
 
         fmt_b = fmt_val(valor_b)
@@ -87,21 +88,23 @@ def format_matrix(matriz_datos):
     return "\n".join(resultado)
 
 
+# ======================================================
+# CLASE MATRIX
+# ======================================================
+
 class Matrix:
 
+    # Crea una matriz con las dimensiones indicadas.
     def __init__(self, rows, columns, valor_inicial=0):
-
         self.rows = rows
         self.columns = columns
 
         self.array = [
-            [
-                valor_inicial
-                for _ in range(columns)
-            ]
+            [valor_inicial for _ in range(columns)]
             for _ in range(rows)
         ]
 
+    # Agrega el vector b como última columna.
     def add_vector_b(self, vector_b):
 
         if len(vector_b) != self.rows:
@@ -115,33 +118,31 @@ class Matrix:
 
         self.columns += 1
 
+    # Modifica una posición de la matriz.
     def modify(self, rows, columns, new_value):
-
         self.array[rows][columns] = new_value
 
+    # Permite mostrar una matriz directamente con print().
     def __str__(self):
-
         lines = []
 
         for row in self.array:
-
             parte = "  ".join(
-                fmt_val(num)
-                for num in row
+                fmt_val(num) for num in row
             )
 
-            lines.append(
-                f"│ {parte} │"
-            )
+            lines.append(f"│ {parte} │")
 
         return "\n".join(lines)
 
+    # ==================================================
+    # SUMA
+    # ==================================================
+
+    # Suma dos matrices del mismo tamaño.
     def sumar(self, B):
 
-        if (
-            self.rows != B.rows
-            or self.columns != B.columns
-        ):
+        if self.rows != B.rows or self.columns != B.columns:
             raise ValueError(
                 "Las matrices deben tener el mismo tamaño."
             )
@@ -152,7 +153,6 @@ class Matrix:
         )
 
         for i in range(self.rows):
-
             for j in range(self.columns):
 
                 resultado.modify(
@@ -164,12 +164,14 @@ class Matrix:
 
         return resultado
 
+    # ==================================================
+    # RESTA
+    # ==================================================
+
+    # Resta dos matrices del mismo tamaño.
     def restar(self, B):
 
-        if (
-            self.rows != B.rows
-            or self.columns != B.columns
-        ):
+        if self.rows != B.rows or self.columns != B.columns:
             raise ValueError(
                 "Las matrices deben tener el mismo tamaño."
             )
@@ -180,7 +182,6 @@ class Matrix:
         )
 
         for i in range(self.rows):
-
             for j in range(self.columns):
 
                 resultado.modify(
@@ -192,6 +193,11 @@ class Matrix:
 
         return resultado
 
+    # ==================================================
+    # MULTIPLICACIÓN POR ESCALAR
+    # ==================================================
+
+    # Multiplica todos los elementos de la matriz por un escalar.
     def escalar_mult(self, c):
 
         resultado = Matrix(
@@ -200,7 +206,6 @@ class Matrix:
         )
 
         for i in range(self.rows):
-
             for j in range(self.columns):
 
                 resultado.modify(
@@ -212,10 +217,14 @@ class Matrix:
 
         return resultado
 
+    # ==================================================
+    # MULTIPLICACIÓN DE MATRICES
+    # ==================================================
+
+    # Multiplica dos matrices si sus dimensiones son compatibles.
     def multiplicar(self, B):
 
         if self.columns != B.rows:
-
             raise ValueError(
                 f"Columnas de A ({self.columns}) "
                 f"≠ Filas de B ({B.rows})."
@@ -247,9 +256,138 @@ class Matrix:
 
         return resultado
 
+    # ==================================================
+    # TRASPUESTA
+    # ==================================================
+
+    # Intercambia las filas por las columnas.
+    def traspuesta(self):
+
+        resultado = Matrix(
+            self.columns,
+            self.rows
+        )
+
+        for i in range(self.rows):
+
+            for j in range(self.columns):
+
+                resultado.modify(
+                    j,
+                    i,
+                    self.array[i][j]
+                )
+
+        return resultado
+
+    # ==================================================
+    # INVERSA
+    # ==================================================
+
+    # Calcula la matriz inversa utilizando Gauss-Jordan.
+    def inversa(self):
+
+        # La inversa solamente existe para matrices cuadradas.
+        if self.rows != self.columns:
+            raise ValueError(
+                "La matriz debe ser cuadrada para calcular su inversa."
+            )
+
+        n = self.rows
+
+        # Se crea la matriz aumentada [A | I].
+        aumentada = []
+
+        for i in range(n):
+
+            fila = []
+
+            # Copiamos la matriz original.
+            for j in range(n):
+                fila.append(
+                    Fraction(self.array[i][j])
+                )
+
+            # Agregamos la matriz identidad.
+            for j in range(n):
+                if i == j:
+                    fila.append(Fraction(1))
+                else:
+                    fila.append(Fraction(0))
+
+            aumentada.append(fila)
+
+        # ==============================================
+        # GAUSS-JORDAN
+        # ==============================================
+
+        for columna in range(n):
+
+            fila_pivote = None
+
+            # Buscamos un pivote diferente de cero.
+            for fila in range(columna, n):
+
+                if aumentada[fila][columna] != 0:
+                    fila_pivote = fila
+                    break
+
+            # Si no encontramos pivote, no existe inversa.
+            if fila_pivote is None:
+                raise ValueError(
+                    "La matriz es singular y no tiene inversa."
+                )
+
+            # Intercambiamos filas si es necesario.
+            if fila_pivote != columna:
+
+                aumentada[columna], aumentada[fila_pivote] = (
+                    aumentada[fila_pivote],
+                    aumentada[columna]
+                )
+
+            # Convertimos el pivote en 1.
+            pivote = aumentada[columna][columna]
+
+            for j in range(2 * n):
+
+                aumentada[columna][j] /= pivote
+
+            # Hacemos ceros arriba y abajo del pivote.
+            for fila in range(n):
+
+                if fila != columna:
+
+                    factor = aumentada[fila][columna]
+
+                    for j in range(2 * n):
+
+                        aumentada[fila][j] -= (
+                            factor
+                            * aumentada[columna][j]
+                        )
+
+        # ==============================================
+        # EXTRAER LA MATRIZ INVERSA
+        # ==============================================
+
+        inversa = Matrix(n, n)
+
+        for i in range(n):
+
+            for j in range(n):
+
+                inversa.modify(
+                    i,
+                    j,
+                    aumentada[i][j + n]
+                )
+
+        return inversa
+
 
 # ======================================================
-# OPERACIONES DEL MÓDULO
+# MENÚ Y FUNCIONES INTERACTIVAS
 # ======================================================
 
 def encabezado():
@@ -260,6 +398,7 @@ def encabezado():
     print("======================================================")
 
 
+# Permite ingresar una matriz desde el teclado.
 def crear_matriz_interactiva(nombre="A"):
 
     filas = asking_for_input(
@@ -298,6 +437,10 @@ def crear_matriz_interactiva(nombre="A"):
     return A
 
 
+# ======================================================
+# SUMA Y RESTA
+# ======================================================
+
 def suma_resta():
 
     encabezado()
@@ -318,6 +461,10 @@ def suma_resta():
         print(f"\n[ERROR]: {e}")
 
 
+# ======================================================
+# MULTIPLICACIÓN POR ESCALAR
+# ======================================================
+
 def multiplicacion_escalar():
 
     encabezado()
@@ -331,6 +478,10 @@ def multiplicacion_escalar():
     print(f"\n--- {c} · A ---")
     print(A.escalar_mult(c))
 
+
+# ======================================================
+# MULTIPLICACIÓN DE MATRICES
+# ======================================================
 
 def multiplicacion_matrices():
 
@@ -349,6 +500,54 @@ def multiplicacion_matrices():
         print(f"\n[ERROR]: {e}")
 
 
+# ======================================================
+# TRASPUESTA
+# ======================================================
+
+def calcular_traspuesta():
+
+    encabezado()
+
+    A = crear_matriz_interactiva("A")
+
+    print("\n--- MATRIZ ORIGINAL A ---")
+    print(A)
+
+    resultado = A.traspuesta()
+
+    print("\n--- MATRIZ TRASPUESTA Aᵀ ---")
+    print(resultado)
+
+
+# ======================================================
+# INVERSA
+# ======================================================
+
+def calcular_inversa():
+
+    encabezado()
+
+    A = crear_matriz_interactiva("A")
+
+    print("\n--- MATRIZ ORIGINAL A ---")
+    print(A)
+
+    try:
+
+        resultado = A.inversa()
+
+        print("\n--- MATRIZ INVERSA A⁻¹ ---")
+        print(resultado)
+
+    except ValueError as e:
+
+        print(f"\n[ERROR]: {e}")
+
+
+# ======================================================
+# MENÚ DEL MÓDULO
+# ======================================================
+
 def menu_matrices():
 
     while True:
@@ -358,6 +557,8 @@ def menu_matrices():
         print("1. Suma y resta de matrices")
         print("2. Multiplicación por escalar")
         print("3. Multiplicación de matrices")
+        print("4. Matriz traspuesta")
+        print("5. Matriz inversa")
         print("0. Ver Teoremas Clave del Módulo")
         print("9. Regresar al menú principal")
 
@@ -367,19 +568,33 @@ def menu_matrices():
         )
 
         if opcion == 1:
+
             suma_resta()
 
         elif opcion == 2:
+
             multiplicacion_escalar()
 
         elif opcion == 3:
+
             multiplicacion_matrices()
 
+        elif opcion == 4:
+
+            calcular_traspuesta()
+
+        elif opcion == 5:
+
+            calcular_inversa()
+
         elif opcion == 0:
+
             resumen_teoremas.teoremas_matrices()
 
         elif opcion == 9:
+
             break
 
         else:
+
             print("\n[ERROR] Opción no válida.")

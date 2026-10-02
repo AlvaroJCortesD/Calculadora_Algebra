@@ -543,6 +543,302 @@ def calcular_inversa():
 
         print(f"\n[ERROR]: {e}")
 
+# Multiplica una matriz por un vector.
+def matriz_por_vector(A, vector):
+    if A.columns != len(vector):
+        raise ValueError(
+            "La cantidad de columnas de A debe coincidir "
+            "con la dimensión del vector."
+        )
+
+    resultado = []
+
+    for i in range(A.rows):
+        suma = Fraction(0)
+
+        for j in range(A.columns):
+            suma += (
+                Fraction(A.array[i][j])
+                * Fraction(vector[j])
+            )
+
+        resultado.append(suma)
+
+    return resultado
+
+
+# Muestra un vector en forma vertical.
+def mostrar_vector(vector):
+    valores = [str(valor) for valor in vector]
+
+    ancho = max(len(valor) for valor in valores) + 2
+
+    print("┌" + " " * ancho + "┐")
+
+    for valor in valores:
+        espacios_izq = (ancho - len(valor)) // 2
+        espacios_der = ancho - len(valor) - espacios_izq
+
+        print(
+            "│"
+            + " " * espacios_izq
+            + valor
+            + " " * espacios_der
+            + "│"
+        )
+
+    print("└" + " " * ancho + "┘")
+
+
+# Comprueba las propiedades del producto matriz-vector
+# mostrando el procedimiento matemático.
+def producto_matriz_vector():
+    encabezado()
+
+    print("\n--- PRODUCTO MATRIZ-VECTOR ---")
+    print("Se comprobarán las propiedades:")
+    print("a) A(u + v) = Au + Av")
+    print("b) A(cu) = c(Au)")
+
+    # Ingresar la matriz A.
+    print("\n--- MATRIZ A ---")
+    A = crear_matriz_interactiva("A")
+
+    # Ingresar el vector u.
+    print("\n--- VECTOR u ---")
+    u = []
+
+    for i in range(A.columns):
+        valor = asking_for_input(f"u[{i + 1}]: ")
+        u.append(valor)
+
+    # Ingresar el vector v.
+    print("\n--- VECTOR v ---")
+    v = []
+
+    for i in range(A.columns):
+        valor = asking_for_input(f"v[{i + 1}]: ")
+        v.append(valor)
+
+    # Ingresar el escalar.
+    c = asking_for_input("\nIngrese el escalar c: ")
+
+    # ==================================================
+    # PROPIEDAD A(u + v) = Au + Av
+    # ==================================================
+
+    print("\n")
+    print("======================================================")
+    print("   PROPIEDAD 1: A(u + v) = Au + Av")
+    print("======================================================")
+
+    # Paso 1: calcular u + v.
+    u_mas_v = [
+        Fraction(u[i]) + Fraction(v[i])
+        for i in range(A.columns)
+    ]
+
+    print("\nPASO 1. Calculamos u + v:")
+
+    for i in range(A.columns):
+        print(
+            f"  {u[i]} + {v[i]} = {u_mas_v[i]}"
+        )
+
+    print("\nu + v =")
+    mostrar_vector(u_mas_v)
+
+    # Paso 2: calcular A(u + v).
+    print("\nPASO 2. Calculamos A(u + v):")
+
+    Au_mas_v = matriz_por_vector(A, u_mas_v)
+
+    for i in range(A.rows):
+        operaciones = []
+
+        for j in range(A.columns):
+            operaciones.append(
+                f"({A.array[i][j]})({u_mas_v[j]})"
+            )
+
+        resultado = " + ".join(operaciones)
+
+        print(
+            f"  Fila {i + 1}: {resultado} = "
+            f"{Au_mas_v[i]}"
+        )
+
+    print("\nA(u + v) =")
+    mostrar_vector(Au_mas_v)
+
+    # Paso 3: calcular Au.
+    print("\nPASO 3. Calculamos Au:")
+
+    Au = matriz_por_vector(A, u)
+
+    for i in range(A.rows):
+        operaciones = []
+
+        for j in range(A.columns):
+            operaciones.append(
+                f"({A.array[i][j]})({u[j]})"
+            )
+
+        resultado = " + ".join(operaciones)
+
+        print(
+            f"  Fila {i + 1}: {resultado} = "
+            f"{Au[i]}"
+        )
+
+    print("\nAu =")
+    mostrar_vector(Au)
+
+    # Paso 4: calcular Av.
+    print("\nPASO 4. Calculamos Av:")
+
+    Av = matriz_por_vector(A, v)
+
+    for i in range(A.rows):
+        operaciones = []
+
+        for j in range(A.columns):
+            operaciones.append(
+                f"({A.array[i][j]})({v[j]})"
+            )
+
+        resultado = " + ".join(operaciones)
+
+        print(
+            f"  Fila {i + 1}: {resultado} = "
+            f"{Av[i]}"
+        )
+
+    print("\nAv =")
+    mostrar_vector(Av)
+
+    # Paso 5: calcular Au + Av.
+    print("\nPASO 5. Calculamos Au + Av:")
+
+    Au_mas_Av = [
+        Au[i] + Av[i]
+        for i in range(A.rows)
+    ]
+
+    for i in range(A.rows):
+        print(
+            f"  {Au[i]} + {Av[i]} = "
+            f"{Au_mas_Av[i]}"
+        )
+
+    print("\nAu + Av =")
+    mostrar_vector(Au_mas_Av)
+
+    # Paso 6: comparar.
+    print("\nPASO 6. Comparamos ambos resultados:")
+
+    if Au_mas_v == Au_mas_Av:
+        print("  A(u + v) = Au + Av")
+        print("\n  [RESULTADO] La propiedad se cumple.")
+    else:
+        print("  A(u + v) ≠ Au + Av")
+        print("\n  [RESULTADO] La propiedad no se cumple.")
+
+    # ==================================================
+    # PROPIEDAD A(cu) = c(Au)
+    # ==================================================
+
+    print("\n")
+    print("======================================================")
+    print("   PROPIEDAD 2: A(cu) = c(Au)")
+    print("======================================================")
+
+    # Paso 1: calcular cu.
+    print("\nPASO 1. Calculamos cu:")
+
+    cu = [
+        Fraction(c) * Fraction(u[i])
+        for i in range(A.columns)
+    ]
+
+    for i in range(A.columns):
+        print(
+            f"  {c}({u[i]}) = {cu[i]}"
+        )
+
+    print("\ncu =")
+    mostrar_vector(cu)
+
+    # Paso 2: calcular A(cu).
+    print("\nPASO 2. Calculamos A(cu):")
+
+    A_cu = matriz_por_vector(A, cu)
+
+    for i in range(A.rows):
+        operaciones = []
+
+        for j in range(A.columns):
+            operaciones.append(
+                f"({A.array[i][j]})({cu[j]})"
+            )
+
+        resultado = " + ".join(operaciones)
+
+        print(
+            f"  Fila {i + 1}: {resultado} = "
+            f"{A_cu[i]}"
+        )
+
+    print("\nA(cu) =")
+    mostrar_vector(A_cu)
+
+    # Paso 3: calcular Au.
+    print("\nPASO 3. Calculamos Au:")
+
+    # Au ya fue calculado anteriormente.
+    for i in range(A.rows):
+        operaciones = []
+
+        for j in range(A.columns):
+            operaciones.append(
+                f"({A.array[i][j]})({u[j]})"
+            )
+
+        resultado = " + ".join(operaciones)
+
+        print(
+            f"  Fila {i + 1}: {resultado} = "
+            f"{Au[i]}"
+        )
+
+    print("\nAu =")
+    mostrar_vector(Au)
+
+    # Paso 4: calcular c(Au).
+    print("\nPASO 4. Calculamos c(Au):")
+
+    c_Au = [
+        Fraction(c) * Fraction(Au[i])
+        for i in range(A.rows)
+    ]
+
+    for i in range(A.rows):
+        print(
+            f"  {c}({Au[i]}) = {c_Au[i]}"
+        )
+
+    print("\nc(Au) =")
+    mostrar_vector(c_Au)
+
+    # Paso 5: comparar.
+    print("\nPASO 5. Comparamos ambos resultados:")
+
+    if A_cu == c_Au:
+        print("  A(cu) = c(Au)")
+        print("\n  [RESULTADO] La propiedad se cumple.")
+    else:
+        print("  A(cu) ≠ c(Au)")
+        print("\n  [RESULTADO] La propiedad no se cumple.")
 
 # ======================================================
 # MENÚ DEL MÓDULO
@@ -559,6 +855,7 @@ def menu_matrices():
         print("3. Multiplicación de matrices")
         print("4. Matriz traspuesta")
         print("5. Matriz inversa")
+        print("6. Producto matriz-vector")
         print("0. Ver Teoremas Clave del Módulo")
         print("9. Regresar al menú principal")
 
@@ -586,6 +883,10 @@ def menu_matrices():
         elif opcion == 5:
 
             calcular_inversa()
+
+        elif opcion == 6:
+
+            producto_matriz_vector()
 
         elif opcion == 0:
 

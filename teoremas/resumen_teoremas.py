@@ -1,3 +1,8 @@
+# ======================================================
+# TEOREMAS Y PROPIEDADES DE ÁLGEBRA LINEAL
+# ======================================================
+
+
 def teoremas_vectores():
     print("\n======================================================")
     print("              TEOREMAS CLAVE: VECTORES")
@@ -24,6 +29,19 @@ def teoremas_vectores():
     print("Si cada columna tiene pivote, los vectores son L.I.")
     print("Si existe una variable libre, los vectores son L.D.")
 
+    print("\n5. VECTOR CERO")
+    print("Un conjunto que contiene al vector cero")
+    print("es linealmente dependiente.")
+
+    print("\n6. CANTIDAD DE VECTORES")
+    print("Si hay más vectores que la dimensión del espacio,")
+    print("los vectores son necesariamente linealmente dependientes.")
+
+    print("\n7. BASE")
+    print("Una base de un espacio vectorial es un conjunto")
+    print("de vectores linealmente independientes que genera")
+    print("todo el espacio.")
+
     print("\n======================================================")
 
 
@@ -48,6 +66,34 @@ def teoremas_matrices():
     print("\n4. TRASPOSICIÓN")
     print("La traspuesta intercambia filas por columnas.")
 
+    print("\n5. PRODUCTO MATRIZ-VECTOR")
+    print("Si A es una matriz de m × n y u es un vector")
+    print("con n componentes, el producto Au está definido.")
+    print("El resultado es un vector con m componentes.")
+
+    print("\n6. PROPIEDAD DISTRIBUTIVA")
+    print("El producto de una matriz por una suma de vectores")
+    print("cumple:")
+    print("A(u + v) = Au + Av")
+
+    print("\n7. COMPATIBILIDAD CON ESCALARES")
+    print("Si c es un escalar y u es un vector:")
+    print("A(cu) = c(Au)")
+
+    print("\n8. NO CONMUTATIVIDAD")
+    print("En general, el producto de matrices")
+    print("no es conmutativo:")
+    print("A · B ≠ B · A")
+
+    print("\n9. TRASPOSICIÓN DE UN PRODUCTO")
+    print("La traspuesta de un producto invierte")
+    print("el orden de las matrices:")
+    print("(A · B)ᵀ = Bᵀ · Aᵀ")
+
+    print("\n10. INVERSA DE UN PRODUCTO")
+    print("Si A y B son matrices invertibles:")
+    print("(A · B)⁻¹ = B⁻¹ · A⁻¹")
+
     print("\n======================================================")
 
 
@@ -61,14 +107,42 @@ def teoremas_sistemas():
     print("Ax = 0")
 
     print("\n2. SISTEMA CONSISTENTE")
-    print("Tiene al menos una solución.")
+    print("Un sistema es consistente si tiene")
+    print("al menos una solución.")
 
     print("\n3. SISTEMA INCONSISTENTE")
-    print("No tiene ninguna solución.")
+    print("Un sistema es inconsistente si")
+    print("no tiene ninguna solución.")
 
     print("\n4. GAUSS-JORDAN")
     print("Permite transformar una matriz mediante operaciones")
     print("elementales hasta obtener su forma escalonada reducida.")
+
+    print("\n5. SOLUCIÓN TRIVIAL")
+    print("Todo sistema homogéneo Ax = 0 siempre tiene")
+    print("al menos la solución:")
+    print("x = 0")
+
+    print("\n6. SOLUCIÓN ÚNICA")
+    print("Un sistema tiene solución única cuando")
+    print("no existen variables libres.")
+
+    print("\n7. INFINITAS SOLUCIONES")
+    print("Un sistema consistente tiene infinitas soluciones")
+    print("cuando existe al menos una variable libre.")
+
+    print("\n8. CRITERIO DE INCONSISTENCIA")
+    print("Si aparece una fila de la forma:")
+    print("[ 0  0  ...  0 | k ]")
+    print("con k ≠ 0, el sistema es inconsistente.")
+
+    print("\n9. RANGO")
+    print("El rango de una matriz es la cantidad de pivotes")
+    print("que aparecen después de reducirla.")
+
+    print("\n10. TEOREMA RANGO-NULIDAD")
+    print("Para una matriz A con n columnas:")
+    print("rango(A) + nulidad(A) = n")
 
     print("\n======================================================")
 
@@ -91,5 +165,31 @@ def teoremas_determinantes():
     print("\n4. FILA DE CEROS")
     print("Si una matriz tiene una fila completamente cero,")
     print("su determinante es 0.")
+
+    print("\n5. DOS FILAS IGUALES")
+    print("Si una matriz tiene dos filas iguales,")
+    print("su determinante es 0.")
+
+    print("\n6. OPERACIONES ELEMENTALES")
+    print("Sumar a una fila un múltiplo de otra fila")
+    print("no cambia el valor del determinante.")
+
+    print("\n7. DETERMINANTE DE LA MATRIZ IDENTIDAD")
+    print("El determinante de la matriz identidad es:")
+    print("det(I) = 1")
+
+    print("\n8. DETERMINANTE DE UN PRODUCTO")
+    print("El determinante del producto de dos matrices")
+    print("es igual al producto de sus determinantes:")
+    print("det(A · B) = det(A) · det(B)")
+
+    print("\n9. DETERMINANTE DE LA TRASPU​​ESTA")
+    print("El determinante de una matriz es igual")
+    print("al determinante de su traspuesta:")
+    print("det(Aᵀ) = det(A)")
+
+    print("\n10. MATRIZ TRIANGULAR")
+    print("El determinante de una matriz triangular")
+    print("es el producto de los elementos de su diagonal.")
 
     print("\n======================================================")

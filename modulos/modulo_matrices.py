@@ -49,6 +49,38 @@ def fmt_val(val):
 
     return f"{val:6}"
 
+# Muestra un vector en forma vertical y ajusta
+# automáticamente el tamaño del recuadro.
+def mostrar_vector(vector):
+    valores = [str(valor) for valor in vector]
+
+    # Buscar el valor con más caracteres.
+    ancho = max(len(valor) for valor in valores)
+
+    # Espacio adicional a ambos lados.
+    ancho += 2
+
+    # Parte superior.
+    print("┌" + " " * ancho + "┐")
+
+    # Valores del vector.
+    for valor in valores:
+        espacios_izquierda = (ancho - len(valor)) // 2
+        espacios_derecha = (
+            ancho - len(valor) - espacios_izquierda
+        )
+
+        print(
+            "│"
+            + " " * espacios_izquierda
+            + valor
+            + " " * espacios_derecha
+            + "│"
+        )
+
+    # Parte inferior.
+    print("└" + " " * ancho + "┘")
+
 
 # Formatea una matriz aumentada [A | b].
 def format_matrix(matriz_datos):
@@ -565,29 +597,6 @@ def matriz_por_vector(A, vector):
         resultado.append(suma)
 
     return resultado
-
-
-# Muestra un vector en forma vertical.
-def mostrar_vector(vector):
-    valores = [str(valor) for valor in vector]
-
-    ancho = max(len(valor) for valor in valores) + 2
-
-    print("┌" + " " * ancho + "┐")
-
-    for valor in valores:
-        espacios_izq = (ancho - len(valor)) // 2
-        espacios_der = ancho - len(valor) - espacios_izq
-
-        print(
-            "│"
-            + " " * espacios_izq
-            + valor
-            + " " * espacios_der
-            + "│"
-        )
-
-    print("└" + " " * ancho + "┘")
 
 
 # Comprueba las propiedades del producto matriz-vector

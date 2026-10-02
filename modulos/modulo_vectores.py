@@ -32,17 +32,6 @@ def escalar_por_vector(c, v):
     return [Fraction(c) * Fraction(x) for x in v]
 
 
-# Muestra un vector en forma vertical.
-def mostrar_vector(vector):
-    print(f"┌   {vector[0]}   ┐")
-
-    for valor in vector[1:-1]:
-        print(f"│   {valor}   │")
-
-    if len(vector) > 1:
-        print(f"└   {vector[-1]}   ┘")
-
-
 # Solicita los vectores y los almacena como columnas de una matriz.
 def leer_vectores():
     print("\n--- DATOS DEL CONJUNTO DE VECTORES ---")
@@ -147,15 +136,15 @@ def operaciones_vectores():
     print("\n--- RESULTADOS ---")
 
     print("\nu + v =")
-    mostrar_vector(sumar_vectores(u, v))
+    modulo_matrices.mostrar_vector(sumar_vectores(u, v))
 
     print("\nu - v =")
-    mostrar_vector(restar_vectores(u, v))
+    modulo_matrices.mostrar_vector(restar_vectores(u, v))
 
     c = modulo_matrices.asking_for_input("\nEscalar c: ")
 
     print("\nc · u =")
-    mostrar_vector(escalar_por_vector(c, u))
+    modulo_matrices.mostrar_vector(escalar_por_vector(c, u))
 
 
 # Comprueba si b puede expresarse como combinación lineal de los vectores.

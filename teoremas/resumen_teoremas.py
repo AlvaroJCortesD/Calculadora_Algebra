@@ -1,6 +1,8 @@
 # ======================================================
 # TEOREMAS Y PROPIEDADES DE ÁLGEBRA LINEAL
 # ======================================================
+import io
+import sys
 
 
 def teoremas_vectores():
@@ -183,7 +185,7 @@ def teoremas_determinantes():
     print("es igual al producto de sus determinantes:")
     print("det(A · B) = det(A) · det(B)")
 
-    print("\n9. DETERMINANTE DE LA TRASPU​​ESTA")
+    print("\n9. DETERMINANTE DE LA TRASPUESTA")
     print("El determinante de una matriz es igual")
     print("al determinante de su traspuesta:")
     print("det(Aᵀ) = det(A)")
@@ -193,3 +195,24 @@ def teoremas_determinantes():
     print("es el producto de los elementos de su diagonal.")
 
     print("\n======================================================")
+
+
+def capturar_salida(func):
+    """Ejecuta una función e intercepta sus print() para retornarlos como texto."""
+    buffer = io.StringIO()
+    sys.stdout = buffer
+    try:
+        func()
+    finally:
+        sys.stdout = sys.__stdout__
+    return buffer.getvalue()
+
+
+def obtener_todos_teoremas():
+    """Concatena todas las secciones de teoremas para mostrarlas en la GUI."""
+    texto = ""
+    texto += capturar_salida(teoremas_vectores)
+    texto += capturar_salida(teoremas_sistemas)
+    texto += capturar_salida(teoremas_matrices)
+    texto += capturar_salida(teoremas_determinantes)
+    return texto

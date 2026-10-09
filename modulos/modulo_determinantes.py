@@ -1,182 +1,68 @@
+"""
+Módulo de Determinantes.
+Contiene los algoritmos para calcular determinantes por expansión
+de cofactores, reducción triangular y generación de matriz de cofactores.
+"""
 from fractions import Fraction
 
-from modulos import modulo_matrices
-from teoremas import resumen_teoremas
+
+def menor_array(array, fila, columna):
+    n = len(array)
+    return [[array[i][j] for j in range(n) if j != columna] for i in range(n) if i != fila]
 
 
-def encabezado():
+def determinante_cofactores(array):
+    n = len(array)
+    if n == 1:
+        return Fraction(array[0][0])
+    if n == 2:
+        return (Fraction(array[0][0]) * Fraction(array[1][1]) -
+                Fraction(array[0][1]) * Fraction(array[1][0]))
 
-    print("\n======================================================")
-    print("          MÓDULO: DETERMINANTES")
-    print("          Cálculo y propiedades")
-    print("======================================================")
+    det = Fraction(0)
+    for j in range(n):
+        signo = Fraction(1) if j % 2 == 0 else Fraction(-1)
+        det += signo * Fraction(array[0][j]) * determinante_cofactores(menor_array(array, 0, j))
+    return det
 
 
-def crear_matriz_cuadrada():
-
-    n = modulo_matrices.asking_for_input(
-        "Orden de la matriz cuadrada: ",
-        type=int
-    )
-
-    A = modulo_matrices.Matrix(n, n)
-
-    print("\n--- INGRESO DE DATOS DE LA MATRIZ ---")
+def determinante_triangular(array):
+    n = len(array)
+    temp = [[Fraction(array[i][j]) for j in range(n)] for i in range(n)]
+    det = Fraction(1)
+    intercambios = 0
 
     for i in range(n):
+        if temp[i][i] == 0:
+            pivote = False
+            for k in range(i + 1, n):
+                if temp[k][i] != 0:
+                    temp[i], temp[k] = temp[k], temp[i]
+                    intercambios += 1
+                    pivote = True
+                    break
+            if not pivote:
+                return Fraction(0)
 
+        for j in range(i + 1, n):
+            factor = temp[j][i] / temp[i][i]
+            for k in range(i, n):
+                temp[j][k] -= factor * temp[i][k]
+
+    for i in range(n):
+        det *= temp[i][i]
+
+    if intercambios % 2 != 0:
+        det *= Fraction(-1)
+
+    return det
+
+
+def matriz_cofactores(array):
+    n = len(array)
+    cof = [[Fraction(0) for _ in range(n)] for _ in range(n)]
+    for i in range(n):
         for j in range(n):
-
-            valor = modulo_matrices.asking_for_input(
-                f"A[{i + 1}][{j + 1}]: "
-            )
-
-            A.modify(
-                i,
-                j,
-                valor
-            )
-
-    return A
-
-
-def calcular_determinante(A):
-
-    # El determinante solamente existe
-    # para matrices cuadradas.
-    if A.rows != A.columns:
-
-        raise ValueError(
-            "El determinante solamente existe "
-            "para matrices cuadradas."
-        )
-
-    # Creamos una copia de la matriz.
-    matriz_temp = [
-        [
-            Fraction(valor)
-            for valor in fila
-        ]
-        for fila in A.array
-    ]
-
-    n = len(matriz_temp)
-
-    determinante = Fraction(1)
-
-    # Reducción por filas.
-    for columna in range(n):
-
-        fila_pivote = None
-
-        # Buscar un pivote diferente de cero.
-        for fila in range(columna, n):
-
-            if matriz_temp[fila][columna] != 0:
-
-                fila_pivote = fila
-                break
-
-        # Si no existe pivote,
-        # el determinante es cero.
-        if fila_pivote is None:
-
-            return Fraction(0)
-
-        # Si hay que intercambiar filas,
-        # cambia el signo del determinante.
-        if fila_pivote != columna:
-
-            matriz_temp[columna], matriz_temp[fila_pivote] = (
-                matriz_temp[fila_pivote],
-                matriz_temp[columna]
-            )
-
-            determinante *= -1
-
-        # Guardamos el pivote.
-        pivote = matriz_temp[columna][columna]
-
-        # Multiplicamos el determinante
-        # por el pivote.
-        determinante *= pivote
-
-        # Hacemos cero debajo del pivote.
-        for fila in range(columna + 1, n):
-
-            factor = (
-                matriz_temp[fila][columna]
-                / pivote
-            )
-
-            for j in range(columna, n):
-
-                matriz_temp[fila][j] -= (
-                    factor
-                    * matriz_temp[columna][j]
-                )
-
-    return determinante
-
-
-def calcular():
-
-    encabezado()
-
-    A = crear_matriz_cuadrada()
-
-    print("\n--- MATRIZ A ---")
-    print(A)
-
-    try:
-
-        determinante = calcular_determinante(A)
-
-        print("\n--- RESULTADO ---")
-        print(f"det(A) = {determinante}")
-
-        if determinante == 0:
-
-            print("\nLa matriz es SINGULAR.")
-            print("La matriz NO tiene inversa.")
-
-        else:
-
-            print("\nLa matriz es NO SINGULAR.")
-            print("La matriz SÍ tiene inversa.")
-
-    except ValueError as e:
-
-        print(f"\n[ERROR]: {e}")
-
-
-def menu_determinantes():
-
-    while True:
-
-        encabezado()
-
-        print("1. Calcular determinante")
-        print("0. Ver Teoremas Clave del Módulo")
-        print("9. Regresar al menú principal")
-
-        opcion = modulo_matrices.asking_for_input(
-            "\nSeleccione una opción: ",
-            type=int
-        )
-
-        if opcion == 1:
-
-            calcular()
-
-        elif opcion == 0:
-
-            resumen_teoremas.teoremas_determinantes()
-
-        elif opcion == 9:
-
-            break
-
-        else:
-
-            print("\n[ERROR] Opción no válida.")
+            signo = Fraction(1) if (i + j) % 2 == 0 else Fraction(-1)
+            cof[i][j] = signo * determinante_cofactores(menor_array(array, i, j))
+    return cof

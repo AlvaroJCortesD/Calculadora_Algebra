@@ -9,6 +9,7 @@ from modulos.modulo_matrices import Matrix
 from modulos.modulo_vectores import vector_a_lista, producto_punto, norma_vector, producto_cruz_3d
 from teoremas.resumen_teoremas import obtener_todos_teoremas
 
+
 class CalculadoraGUI:
     def __init__(self, root):
         self.root = root
@@ -127,21 +128,23 @@ class CalculadoraGUI:
 
         tk.Label(op_frame, text="Operación:").grid(row=0, column=0, columnspan=4)
 
-        # Opciones agregadas para Vectores
+        # Opciones completas
         opciones = [
             "Suma (A+B)",
             "Resta (A-B)",
             "Multiplicar (A*B / A*v)",
             "Escalar (c*A)",
             "Transpuesta (A^T)",
-            "Determinante |A|",
+            "Determinante (Triangular)",
+            "Determinante (Cofactores)",
+            "Matriz Adjunta (adj A)",
             "Inversa (A^-1)",
             "Producto Punto (u · v)",
             "Norma ||u||",
             "Producto Cruz (u x v)"
         ]
 
-        self.cb_op = ttk.Combobox(op_frame, values=opciones, state="readonly", width=22)
+        self.cb_op = ttk.Combobox(op_frame, values=opciones, state="readonly", width=25)
         self.cb_op.grid(row=1, column=0, columnspan=4, pady=5)
         self.cb_op.current(0)
 
@@ -209,9 +212,15 @@ class CalculadoraGUI:
             elif "Transpuesta" in op:
                 resultado = A.traspuesta()
                 texto_resultado = f"--- Transpuesta de {n1} ---\n{resultado}"
-            elif "Determinante" in op:
+            elif "Determinante (Triangular)" in op:
                 det = A.determinante_triangular()
-                texto_resultado = f"--- Determinante de {n1} ---\n|{n1}| = {det}"
+                texto_resultado = f"--- Determinante de {n1} (Reducción Triangular) ---\n|{n1}| = {det}"
+            elif "Determinante (Cofactores)" in op:
+                det = A.determinante_cofactores()
+                texto_resultado = f"--- Determinante de {n1} (Expansión por Cofactores) ---\n|{n1}| = {det}"
+            elif "Matriz Adjunta" in op:
+                resultado = A.adjunta()
+                texto_resultado = f"--- Matriz Adjunta de {n1} ---\nadj({n1}) =\n{resultado}"
             elif "Inversa" in op:
                 resultado = A.inversa()
                 texto_resultado = f"--- Inversa de {n1} ---\n{resultado}"
@@ -233,7 +242,6 @@ class CalculadoraGUI:
                 v_list = vector_a_lista(B)
                 cruz = producto_cruz_3d(u_list, v_list)
 
-                # Convertir resultado a matriz columna 3x1 para guardarlo
                 resultado = Matrix(3, 1)
                 for i in range(3):
                     resultado.modify(i, 0, cruz[i])
@@ -268,6 +276,7 @@ class CalculadoraGUI:
             del self.memory[nombre]
             self.actualizar_memoria()
             self.log(f"'{nombre}' eliminado.")
+
 
 if __name__ == "__main__":
     root = tk.Tk()

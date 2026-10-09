@@ -77,6 +77,11 @@ class Matrix:
             raise ValueError("La matriz debe ser cuadrada.")
         return determinante_triangular(self.array)
 
+    def determinante_cofactores(self):
+        if self.rows != self.columns:
+            raise ValueError("La matriz debe ser cuadrada.")
+        return determinante_cofactores(self.array)
+
     def adjunta(self):
         if self.rows != self.columns:
             raise ValueError("La matriz debe ser cuadrada.")

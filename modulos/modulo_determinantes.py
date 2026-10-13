@@ -1,17 +1,16 @@
 """
-Módulo de Determinantes.
-Contiene los algoritmos para calcular determinantes por expansión
-de cofactores, reducción triangular y generación de matriz de cofactores.
+Módulo de Determinantes con Procedimiento Paso a Paso.
+Contiene algoritmos para reducción triangular y expansión por cofactores.
 """
 from fractions import Fraction
 
-
 def menor_array(array, fila, columna):
+    """Devuelve la submatriz eliminando una fila y columna."""
     n = len(array)
     return [[array[i][j] for j in range(n) if j != columna] for i in range(n) if i != fila]
 
-
 def determinante_cofactores(array):
+    """Cálculo directo del determinante por cofactores."""
     n = len(array)
     if n == 1:
         return Fraction(array[0][0])
@@ -25,40 +24,91 @@ def determinante_cofactores(array):
         det += signo * Fraction(array[0][j]) * determinante_cofactores(menor_array(array, 0, j))
     return det
 
+def determinante_cofactores_paso_a_paso(array):
+    """Devuelve (det, procedimiento_str) desglosando la expansión por cofactores."""
+    n = len(array)
+    pasos = ["--- EXPANSIÓN POR COFACTORES (Fila 1) ---"]
 
-def determinante_triangular(array):
+    if n == 1:
+        det = Fraction(array[0][0])
+        pasos.append(f"Matriz 1x1: det = {det}")
+        return det, "\n".join(pasos)
+
+    if n == 2:
+        a, b = Fraction(array[0][0]), Fraction(array[0][1])
+        c, d = Fraction(array[1][0]), Fraction(array[1][1])
+        det = a*d - b*c
+        pasos.append(f"Fórmula 2x2: ({a})*({d}) - ({b})*({c}) = {det}")
+        return det, "\n".join(pasos)
+
+    det = Fraction(0)
+    terminos = []
+    for j in range(n):
+        signo = Fraction(1) if j % 2 == 0 else Fraction(-1)
+        val_elem = Fraction(array[0][j])
+        sub_mat = menor_array(array, 0, j)
+        sub_det = determinante_cofactores(sub_mat)
+
+        signo_str = "+" if signo > 0 else "-"
+        pasos.append(f"  Elemento A[1][{j+1}] = {val_elem}: Coeficiente = {signo_str}({val_elem}) * det(Menor_1,{j+1}) = {signo * val_elem * sub_det}")
+        det += signo * val_elem * sub_det
+        terminos.append(f"({signo * val_elem * sub_det})")
+
+    pasos.append(f"\nSuma de cofactores: {' + '.join(terminos)} = {det}")
+    return det, "\n".join(pasos)
+
+def determinante_triangular_paso_a_paso(array):
+    """Devuelve (det, procedimiento_str) mediante reducción a forma triangular."""
     n = len(array)
     temp = [[Fraction(array[i][j]) for j in range(n)] for i in range(n)]
-    det = Fraction(1)
+    pasos = ["--- REDUCCIÓN A FORMA TRIANGULAR ---"]
+
     intercambios = 0
 
     for i in range(n):
+        pasos.append(f"\n[ Columna {i+1} ]")
         if temp[i][i] == 0:
-            pivote = False
+            pivote_encontrado = False
             for k in range(i + 1, n):
                 if temp[k][i] != 0:
                     temp[i], temp[k] = temp[k], temp[i]
                     intercambios += 1
-                    pivote = True
+                    pivote_encontrado = True
+                    pasos.append(f"  Intercambio Fila {i+1} <-> Fila {k+1} (el signo del det cambia)")
                     break
-            if not pivote:
-                return Fraction(0)
+            if not pivote_encontrado:
+                pasos.append(f"  Columna {i+1} sin pivote ≠ 0 -> det = 0")
+                return Fraction(0), "\n".join(pasos)
+
+        pivote = temp[i][i]
+        pasos.append(f"  Pivote en A[{i+1}][{i+1}] = {pivote}")
 
         for j in range(i + 1, n):
-            factor = temp[j][i] / temp[i][i]
-            for k in range(i, n):
-                temp[j][k] -= factor * temp[i][k]
+            if temp[j][i] != 0:
+                factor = temp[j][i] / temp[i][i]
+                pasos.append(f"  Operación de fila: F{j+1} -> F{j+1} - ({factor}) * F{i+1}")
+                for k in range(i, n):
+                    temp[j][k] -= factor * temp[i][k]
 
+    prod_diag = Fraction(1)
+    diag_vals = []
     for i in range(n):
-        det *= temp[i][i]
+        prod_diag *= temp[i][i]
+        diag_vals.append(str(temp[i][i]))
 
-    if intercambios % 2 != 0:
-        det *= Fraction(-1)
+    pasos.append(f"\nDiagonal principal: {', '.join(diag_vals)}")
+    pasos.append(f"Producto diagonal: {' * '.join(diag_vals)} = {prod_diag}")
 
-    return det
+    if intercambios > 0:
+        det = prod_diag * (Fraction(-1) ** intercambios)
+        pasos.append(f"Ajuste por {intercambios} intercambio(s) de fila: det = {det}")
+    else:
+        det = prod_diag
 
+    return det, "\n".join(pasos)
 
 def matriz_cofactores(array):
+    """Calcula la matriz de cofactores."""
     n = len(array)
     cof = [[Fraction(0) for _ in range(n)] for _ in range(n)]
     for i in range(n):

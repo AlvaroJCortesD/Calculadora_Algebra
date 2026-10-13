@@ -1,12 +1,16 @@
 """
 Interfaz Gráfica (GUI) - Proyecto Integrador.
-Soporta Operaciones con Matrices y Vectores.
+Soporta Matrices, Vectores y Sistemas de Ecuaciones Lineales Ax = b.
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
 from fractions import Fraction
 from modulos.modulo_matrices import Matrix
 from modulos.modulo_vectores import vector_a_lista, producto_punto, norma_vector, producto_cruz_3d
+from modulos.modulo_sistemas import (
+    resolver_sistema_gauss_jordan_paso_a_paso,
+    resolver_sistema_inversa_paso_a_paso
+)
 from teoremas.resumen_teoremas import obtener_todos_teoremas
 
 
@@ -14,17 +18,17 @@ class CalculadoraGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Calculadora de Álgebra Lineal - Proyecto Integrador")
-        self.root.geometry("1100x600")
+        self.root.geometry("1180x680")
 
         self.memory = {}
 
-        self.frame_left = tk.LabelFrame(self.root, text="Memoria (Matrices y Vectores)", width=250)
+        self.frame_left = tk.LabelFrame(self.root, text="Memoria (Variables)", width=250)
         self.frame_left.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
 
         self.frame_center = tk.LabelFrame(self.root, text="Crear Elemento")
         self.frame_center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        self.frame_right = tk.LabelFrame(self.root, text="Operaciones y Resultados")
+        self.frame_right = tk.LabelFrame(self.root, text="Operaciones, Procedimiento y Resultados")
         self.frame_right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         self.setup_memory_panel()
@@ -32,7 +36,7 @@ class CalculadoraGUI:
         self.setup_operations_panel()
 
     def setup_memory_panel(self):
-        self.listbox_vars = tk.Listbox(self.frame_left, font=("Consolas", 12))
+        self.listbox_vars = tk.Listbox(self.frame_left, font=("Consolas", 11))
         self.listbox_vars.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.listbox_vars.bind('<<ListboxSelect>>', self.ver_matriz_guardada)
 
@@ -103,7 +107,7 @@ class CalculadoraGUI:
     def guardar_matriz(self):
         nombre = self.ent_nombre.get().strip()
         if not nombre:
-            messagebox.showerror("Error", "Asigna un nombre (Ej. A, u, v).")
+            messagebox.showerror("Error", "Asigna un nombre (Ej. A, b, u).")
             return
 
         filas = len(self.matriz_entries)
@@ -126,33 +130,35 @@ class CalculadoraGUI:
         op_frame = tk.Frame(self.frame_right)
         op_frame.pack(pady=10)
 
-        tk.Label(op_frame, text="Operación:").grid(row=0, column=0, columnspan=4)
+        tk.Label(op_frame, text="Operación a realizar:").grid(row=0, column=0, columnspan=4)
 
-        # Opciones completas
         opciones = [
             "Suma (A+B)",
             "Resta (A-B)",
             "Multiplicar (A*B / A*v)",
             "Escalar (c*A)",
             "Transpuesta (A^T)",
-            "Determinante (Triangular)",
-            "Determinante (Cofactores)",
+            "Determinante (Triangular Paso a Paso)",
+            "Determinante (Cofactores Paso a Paso)",
+            "Inversa (Gauss-Jordan Paso a Paso)",
+            "Inversa (por Adjunta Paso a Paso)",
             "Matriz Adjunta (adj A)",
-            "Inversa (A^-1)",
+            "Sistema Ax = b (Gauss-Jordan en [A|b] Paso a Paso)",
+            "Sistema Ax = b (Por Inversa x = A^-1*b Paso a Paso)",
             "Producto Punto (u · v)",
             "Norma ||u||",
             "Producto Cruz (u x v)"
         ]
 
-        self.cb_op = ttk.Combobox(op_frame, values=opciones, state="readonly", width=25)
+        self.cb_op = ttk.Combobox(op_frame, values=opciones, state="readonly", width=38)
         self.cb_op.grid(row=1, column=0, columnspan=4, pady=5)
         self.cb_op.current(0)
 
-        tk.Label(op_frame, text="Matriz 1 / Vector 1:").grid(row=2, column=0)
+        tk.Label(op_frame, text="Matriz A / Vector 1:").grid(row=2, column=0)
         self.cb_mat1 = ttk.Combobox(op_frame, width=5, state="readonly")
         self.cb_mat1.grid(row=2, column=1)
 
-        tk.Label(op_frame, text="Matriz 2 / Vector 2 / Escalar:").grid(row=2, column=2)
+        tk.Label(op_frame, text="Matriz B / Vector b / Escalar:").grid(row=2, column=2)
         self.cb_mat2 = ttk.Combobox(op_frame, width=5)
         self.cb_mat2.grid(row=2, column=3)
 
@@ -160,13 +166,13 @@ class CalculadoraGUI:
         self.ent_res_nombre = tk.Entry(op_frame, width=8)
         self.ent_res_nombre.grid(row=3, column=2, columnspan=2)
 
-        self.btn_calcular = ttk.Button(op_frame, text="Calcular", command=self.calcular)
+        self.btn_calcular = ttk.Button(op_frame, text="Calcular y Mostrar Paso a Paso", command=self.calcular)
         self.btn_calcular.grid(row=4, column=0, columnspan=2, pady=10)
 
-        self.btn_teoremas = ttk.Button(op_frame, text="Ver Teoremas", command=self.mostrar_teoremas)
+        self.btn_teoremas = ttk.Button(op_frame, text="Ver Teoremas Clave", command=self.mostrar_teoremas)
         self.btn_teoremas.grid(row=4, column=2, columnspan=2, pady=10)
 
-        self.txt_salida = tk.Text(self.frame_right, height=15, font=("Consolas", 12), state=tk.DISABLED)
+        self.txt_salida = tk.Text(self.frame_right, height=18, font=("Consolas", 11), state=tk.DISABLED)
         self.txt_salida.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     def log(self, mensaje):
@@ -185,7 +191,7 @@ class CalculadoraGUI:
         res_nombre = self.ent_res_nombre.get().strip()
 
         if n1 not in self.memory:
-            messagebox.showerror("Error", "Selecciona la Matriz 1 / Vector 1.")
+            messagebox.showerror("Error", "Selecciona la Matriz A / Vector 1 de la memoria.")
             return
 
         A = self.memory[n1]
@@ -196,34 +202,43 @@ class CalculadoraGUI:
             if "Suma" in op:
                 B = self.memory[n2]
                 resultado = A.sumar(B)
-                texto_resultado = f"--- {n1} + {n2} ---\n{resultado}"
+                texto_resultado = f"--- SUMA: {n1} + {n2} ---\n{resultado}"
             elif "Resta" in op:
                 B = self.memory[n2]
                 resultado = A.restar(B)
-                texto_resultado = f"--- {n1} - {n2} ---\n{resultado}"
+                texto_resultado = f"--- RESTA: {n1} - {n2} ---\n{resultado}"
             elif "Multiplicar" in op:
                 B = self.memory[n2]
                 resultado = A.multiplicar(B)
-                texto_resultado = f"--- {n1} · {n2} ---\n{resultado}"
+                texto_resultado = f"--- MULTIPLICACIÓN: {n1} · {n2} ---\n{resultado}"
             elif "Escalar" in op:
                 c = Fraction(n2)
                 resultado = A.escalar_mult(c)
-                texto_resultado = f"--- {c} · {n1} ---\n{resultado}"
+                texto_resultado = f"--- MULTIPLICACIÓN POR ESCALAR: {c} · {n1} ---\n{resultado}"
             elif "Transpuesta" in op:
                 resultado = A.traspuesta()
-                texto_resultado = f"--- Transpuesta de {n1} ---\n{resultado}"
-            elif "Determinante (Triangular)" in op:
-                det = A.determinante_triangular()
-                texto_resultado = f"--- Determinante de {n1} (Reducción Triangular) ---\n|{n1}| = {det}"
-            elif "Determinante (Cofactores)" in op:
-                det = A.determinante_cofactores()
-                texto_resultado = f"--- Determinante de {n1} (Expansión por Cofactores) ---\n|{n1}| = {det}"
+                texto_resultado = f"--- TRANSPUESTA DE {n1} ---\n{resultado}"
+            elif "Determinante (Triangular" in op:
+                det, pas_str = A.determinante_triangular_paso_a_paso()
+                texto_resultado = f"{pas_str}\n\nRESULTADO FINAL: det({n1}) = {det}"
+            elif "Determinante (Cofactores" in op:
+                det, pas_str = A.determinante_cofactores_paso_a_paso()
+                texto_resultado = f"{pas_str}\n\nRESULTADO FINAL: det({n1}) = {det}"
+            elif "Gauss-Jordan Paso a Paso)" in op and "Sistema" not in op:
+                resultado, texto_resultado = A.inversa_gauss_jordan_paso_a_paso()
+            elif "por Adjunta Paso a Paso" in op:
+                resultado, texto_resultado = A.inversa_adjunta_paso_a_paso()
             elif "Matriz Adjunta" in op:
                 resultado = A.adjunta()
-                texto_resultado = f"--- Matriz Adjunta de {n1} ---\nadj({n1}) =\n{resultado}"
-            elif "Inversa" in op:
-                resultado = A.inversa()
-                texto_resultado = f"--- Inversa de {n1} ---\n{resultado}"
+                texto_resultado = f"--- MATRIZ ADJUNTA DE {n1} ---\nadj({n1}) =\n{resultado}"
+
+            # --- SISTEMAS DE ECUACIONES LINEALES ---
+            elif "Sistema Ax = b (Gauss-Jordan" in op:
+                B = self.memory[n2] # Vector b (matriz n x 1)
+                resultado, texto_resultado = resolver_sistema_gauss_jordan_paso_a_paso(A, B)
+            elif "Sistema Ax = b (Por Inversa" in op:
+                B = self.memory[n2] # Vector b (matriz n x 1)
+                resultado, texto_resultado = resolver_sistema_inversa_paso_a_paso(A, B)
 
             # --- OPERACIONES DE VECTORES ---
             elif "Producto Punto" in op:
@@ -231,21 +246,20 @@ class CalculadoraGUI:
                 u_list = vector_a_lista(A)
                 v_list = vector_a_lista(B)
                 p_punto = producto_punto(u_list, v_list)
-                texto_resultado = f"--- Producto Punto {n1} · {n2} ---\nResultado = {p_punto}"
+                texto_resultado = f"--- PRODUCTO PUNTO: {n1} · {n2} ---\nResultado = {p_punto}"
             elif "Norma" in op:
                 u_list = vector_a_lista(A)
                 norma = norma_vector(u_list)
-                texto_resultado = f"--- Norma ||{n1}|| ---\nResultado = {norma:.4f}"
+                texto_resultado = f"--- NORMA ||{n1}|| ---\nResultado = {norma:.4f}"
             elif "Producto Cruz" in op:
                 B = self.memory[n2]
                 u_list = vector_a_lista(A)
                 v_list = vector_a_lista(B)
                 cruz = producto_cruz_3d(u_list, v_list)
-
                 resultado = Matrix(3, 1)
                 for i in range(3):
                     resultado.modify(i, 0, cruz[i])
-                texto_resultado = f"--- Producto Cruz {n1} x {n2} ---\n{resultado}"
+                texto_resultado = f"--- PRODUCTO CRUZ: {n1} x {n2} ---\n{resultado}"
 
             self.log(texto_resultado)
 
@@ -254,8 +268,9 @@ class CalculadoraGUI:
                 self.actualizar_memoria()
 
         except KeyError:
-            messagebox.showerror("Error", "Ingresa una segunda matriz/vector/escalar válido.")
+            messagebox.showerror("Error", "Ingresa un segundo elemento (Matriz B / Vector b / Escalar) válido de la memoria.")
         except ValueError as e:
+            self.log(f"[ERROR]: {e}")
             messagebox.showerror("Error Matemático", str(e))
 
     def ver_matriz_guardada(self, event):
@@ -275,8 +290,7 @@ class CalculadoraGUI:
             nombre = texto_item.split()[0]
             del self.memory[nombre]
             self.actualizar_memoria()
-            self.log(f"'{nombre}' eliminado.")
-
+            self.log(f"'{nombre}' eliminado de la memoria.")
 
 if __name__ == "__main__":
     root = tk.Tk()

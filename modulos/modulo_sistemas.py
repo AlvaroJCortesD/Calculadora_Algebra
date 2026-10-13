@@ -1,535 +1,179 @@
+"""
+Módulo de Sistemas de Ecuaciones Lineales.
+Resuelve sistemas Ax = b mediante Gauss-Jordan paso a paso en la matriz
+aumentada [A | b] y mediante x = A⁻¹ · b.
+"""
 from fractions import Fraction
-
-from modulos import modulo_matrices
-from teoremas import resumen_teoremas
+from modulos.modulo_matrices import Matrix, fmt_val
 
 
-def to_subscript(number):
-    subscripts = str.maketrans(
-        "0123456789",
-        "₀₁₂₃₄₅₆₇₈₉"
-    )
-
-    return str(number).translate(subscripts)
-
-
-def encabezado():
-
-    print("\n======================================================")
-    print("[  [1 2 | 3]  ]  MÓDULO: SISTEMAS DE ECUACIONES (SEL)")
-    print("[  [0 1 | 5]  ]  Métodos: Gauss, Gauss-Jordan")
-    print("======================================================")
+def format_augmented_system(aumentada, cols_A):
+    """Formatea la matriz aumentada [A | b]."""
+    lines = []
+    for row in aumentada:
+        parte_A = "  ".join(f"{fmt_val(num):>6}" for num in row[:cols_A])
+        parte_b = "  ".join(f"{fmt_val(num):>6}" for num in row[cols_A:])
+        lines.append(f"│ {parte_A}  │  {parte_b} │")
+    return "\n".join(lines)
 
 
-def gauss_jordan(matrix):
-
-    m_filas = matrix.rows
-    n_variables = matrix.columns - 1
-
-    clone = [
-        [Fraction(valor) for valor in fila]
-        for fila in matrix.array
-    ]
-
-    def imprimir_paso(matriz_clon):
-
-        print(
-            modulo_matrices.format_matrix(
-                matriz_clon
-            )
+def resolver_sistema_gauss_jordan_paso_a_paso(A, b_mat):
+    """
+    Resuelve Ax = b usando Gauss-Jordan paso a paso en [A | b].
+    Devuelve: (x_matriz_o_None, procedimiento_str)
+    """
+    if A.rows != b_mat.rows:
+        raise ValueError(
+            "El número de filas de A debe coincidir con el número de elementos de b."
         )
 
-        print("-" * 50)
+    m = A.rows
+    n = A.columns
 
-    print("\n=== INICIANDO REDUCCIÓN GAUSS-JORDAN ===")
+    # Construcción de la matriz aumentada [A | b]
+    aumentada = []
+    for i in range(m):
+        fila = [Fraction(A.array[i][j]) for j in range(n)] + [
+            Fraction(b_mat.array[i][0])
+        ]
+        aumentada.append(fila)
 
-    print(
-        "Transformando la matriz a la "
-        "FORMA ESCALONADA REDUCIDA..."
-    )
+    pasos = [
+        "======================================================",
+        "   RESOLUCIÓN DE SISTEMA Ax = b POR GAUSS-JORDAN",
+        "======================================================",
+        "\nMatriz Aumentada Inicial [A | b]:",
+        format_augmented_system(aumentada, n),
+    ]
 
-    columnas_pivote = []
-    fila_pivote = 0
+    fila_pivote_actual = 0
+    pivotes_columnas = []
 
-    for c in range(n_variables):
-
-        if fila_pivote >= m_filas:
+    for col in range(n):
+        if fila_pivote_actual >= m:
             break
 
-        print(f"\nProcesando Columna {c + 1}:")
+        sel_fila = None
+        for r in range(fila_pivote_actual, m):
+            if aumentada[r][col] != 0:
+                sel_fila = r
+                break
 
-        max_row = fila_pivote
-
-        for r in range(
-            fila_pivote + 1,
-            m_filas
-        ):
-
-            if (
-                abs(clone[r][c])
-                > abs(clone[max_row][c])
-            ):
-
-                max_row = r
-
-        if clone[max_row][c] == 0:
-
-            print(
-                f"-> La columna {c + 1} "
-                "no tiene pivote (variable libre)."
+        if sel_fila is None:
+            pasos.append(
+                f"\nColumna {col + 1}: Sin pivote no nulo (Variable libre x_{col + 1})."
             )
-
             continue
 
-        if max_row != fila_pivote:
-
-            clone[fila_pivote], clone[max_row] = (
-                clone[max_row],
-                clone[fila_pivote]
+        pasos.append(f"\n--- PASO COLUMNA {col + 1} ---")
+        if sel_fila != fila_pivote_actual:
+            aumentada[fila_pivote_actual], aumentada[sel_fila] = (
+                aumentada[sel_fila],
+                aumentada[fila_pivote_actual],
             )
-
-            print(
-                f"-> Se intercambió la fila "
-                f"{fila_pivote + 1} con la fila "
-                f"{max_row + 1}:"
+            pasos.append(
+                f"Intercambio: F{fila_pivote_actual + 1} <-> F{sel_fila + 1}"
             )
+            pasos.append(format_augmented_system(aumentada, n))
 
-            imprimir_paso(clone)
+        val_pivote = aumentada[fila_pivote_actual][col]
+        if val_pivote != 1:
+            pasos.append(
+                f"Normalizar pivote en F{fila_pivote_actual + 1}: F{fila_pivote_actual + 1} -> F{fila_pivote_actual + 1} / ({val_pivote})"
+            )
+            for j in range(n + 1):
+                aumentada[fila_pivote_actual][j] /= val_pivote
+            pasos.append(format_augmented_system(aumentada, n))
 
-        pivot = clone[fila_pivote][c]
-
-        for j in range(matrix.columns):
-
-            clone[fila_pivote][j] /= pivot
-
-        print(
-            f"-> Fila {fila_pivote + 1} "
-            f"dividida entre su pivote ({pivot}):"
-        )
-
-        imprimir_paso(clone)
-
-        for f in range(m_filas):
-
-            if f != fila_pivote:
-
-                factor = clone[f][c]
-
-                for j in range(matrix.columns):
-
-                    clone[f][j] -= (
-                        factor
-                        * clone[fila_pivote][j]
+        for r in range(m):
+            if r != fila_pivote_actual:
+                factor = aumentada[r][col]
+                if factor != 0:
+                    pasos.append(
+                        f"Hacer cero en F{r + 1}: F{r + 1} -> F{r + 1} - ({factor}) * F{fila_pivote_actual + 1}"
                     )
+                    for j in range(n + 1):
+                        aumentada[r][j] -= factor * aumentada[fila_pivote_actual][j]
 
-        print(
-            f"-> Ceros generados arriba y abajo "
-            f"del pivote de la columna {c + 1}:"
-        )
+        pasos.append("Estado actual [A | b]:")
+        pasos.append(format_augmented_system(aumentada, n))
+        pivotes_columnas.append((fila_pivote_actual, col))
+        fila_pivote_actual += 1
 
-        imprimir_paso(clone)
-
-        columnas_pivote.append(c)
-        fila_pivote += 1
-
-    print("\n=== PROCESO DE REDUCCIÓN FINALIZADO ===")
-
-    print(
-        "ESTADO: FORMA ESCALONADA REDUCIDA "
-        "POR FILAS."
-    )
-
-    variables_libres = [
-        col
-        for col in range(n_variables)
-        if col not in columnas_pivote
-    ]
-
+    # Detección de inconsistencias: [0 0 ... 0 | k] con k != 0
     inconsistente = False
-
-    for row in clone:
-
-        if (
-            all(
-                val == 0
-                for val in row[:-1]
-            )
-            and row[-1] != 0
-        ):
-
+    for r in range(m):
+        es_cero_A = all(aumentada[r][j] == 0 for j in range(n))
+        val_b = aumentada[r][n]
+        if es_cero_A and val_b != 0:
             inconsistente = True
+            pasos.append(
+                f"\n[INCONSISTENCIA]: La fila {r + 1} indica la contradicción 0 = {val_b}."
+            )
             break
-
-    print(
-        "\n================ RESULTADO DEL ANÁLISIS ================"
-    )
 
     if inconsistente:
-
-        print("TIPO DE SISTEMA: INCONSISTENTE")
-        print(
-            "CANTIDAD DE SOLUCIONES: "
-            "Sin solución."
+        pasos.append(
+            "\n[DIAGNÓSTICO]: El sistema es INCONSISTENTE (No tiene solución)."
         )
+        return None, "\n".join(pasos)
 
-        print(
-            "RAZÓN: Se obtuvo una contradicción "
-            "[0 0 ... 0 | k], k ≠ 0."
+    num_pivotes = len(pivotes_columnas)
+    if num_pivotes < n:
+        pasos.append(
+            f"\n[DIAGNÓSTICO]: El sistema es CONSISTENTE INDETERMINADO (Infinitas soluciones)."
         )
-
-        print(
-            "========================================================\n"
+        pasos.append(
+            f"Número de pivotes = {num_pivotes}, Número de variables = {n}."
         )
+        pasos.append(f"Variables libres = {n - num_pivotes}.")
+        return None, "\n".join(pasos)
 
-        return (
-            clone,
-            columnas_pivote,
-            variables_libres,
-            None,
-            None
-        )
+    # Solución única
+    x = Matrix(n, 1)
+    for r, c in pivotes_columnas:
+        x.modify(c, 0, aumentada[r][n])
 
-    elif len(variables_libres) > 0:
-
-        print(
-            "TIPO DE SISTEMA: "
-            "CONSISTENTE INDETERMINADO"
-        )
-
-        print(
-            "CANTIDAD DE SOLUCIONES: "
-            "Infinitas soluciones."
-        )
-
-        v_particular = [
-            Fraction(0)
-            for _ in range(n_variables)
-        ]
-
-        v_direccionales = {
-            lib: [
-                Fraction(0)
-                for _ in range(n_variables)
-            ]
-            for lib in variables_libres
-        }
-
-        for lib in variables_libres:
-
-            v_direccionales[lib][lib] = Fraction(1)
-
-        for idx, p in enumerate(columnas_pivote):
-
-            v_particular[p] = clone[idx][-1]
-
-            for lib in variables_libres:
-
-                v_direccionales[lib][p] = (
-                    -clone[idx][lib]
-                )
-
-        forma_vectorial = (
-            f"Vector X = {v_particular}"
-        )
-
-        for lib in variables_libres:
-
-            sub = to_subscript(lib + 1)
-
-            forma_vectorial += (
-                f" + x{sub} * "
-                f"{v_direccionales[lib]}"
-            )
-
-        print(
-            "========================================================\n"
-        )
-
-        return (
-            clone,
-            columnas_pivote,
-            variables_libres,
-            None,
-            forma_vectorial
-        )
-
-    else:
-
-        print(
-            "TIPO DE SISTEMA: "
-            "CONSISTENTE DETERMINADO"
-        )
-
-        print(
-            "CANTIDAD DE SOLUCIONES: "
-            "Solución ÚNICA."
-        )
-
-        print(
-            "========================================================\n"
-        )
-
-        answers = []
-
-        for row in clone:
-
-            val = row[-1]
-
-            if (
-                isinstance(val, Fraction)
-                and val.denominator == 1
-            ):
-
-                answers.append(val.numerator)
-
-            else:
-
-                answers.append(val)
-
-        return (
-            clone,
-            columnas_pivote,
-            variables_libres,
-            answers,
-            None
-        )
-
-
-def verificar_solucion(
-    matriz_original,
-    vector_b,
-    soluciones
-):
-
-    for i in range(
-        len(matriz_original)
-    ):
-
-        suma = sum(
-            Fraction(matriz_original[i][j])
-            * Fraction(soluciones[j])
-            for j in range(len(soluciones))
-        )
-
-        if suma != Fraction(vector_b[i]):
-
-            print(
-                f"Alerta: la solución no satisface "
-                f"la ecuación {i + 1}."
-            )
-
-            return False
-
-    print(
-        "Solución verificada correctamente."
+    pasos.append(
+        "\n[DIAGNÓSTICO]: El sistema es CONSISTENTE DETERMINADO (Solución única):"
     )
+    for j in range(n):
+        pasos.append(f"  x_{j + 1} = {x.array[j][0]}")
 
-    return True
+    pasos.append("\nVector solución x:")
+    pasos.append(str(x))
 
-
-def es_homogeneo(vector_b):
-
-    return all(
-        Fraction(valor) == 0
-        for valor in vector_b
-    )
+    return x, "\n".join(pasos)
 
 
-def crear_sistema():
-
-    filas = modulo_matrices.asking_for_input(
-        "Número de ecuaciones (m): ",
-        type=int
-    )
-
-    columnas = modulo_matrices.asking_for_input(
-        "Número de variables (n): ",
-        type=int
-    )
-
-    A = modulo_matrices.Matrix(
-        filas,
-        columnas
-    )
-
-    print("\n--- INGRESO DE LA MATRIZ A ---")
-
-    for i in range(filas):
-
-        for j in range(columnas):
-
-            valor = modulo_matrices.asking_for_input(
-                f"A[{i + 1}][{j + 1}]: "
-            )
-
-            A.modify(
-                i,
-                j,
-                valor
-            )
-
-    print("\n--- INGRESO DEL VECTOR b ---")
-
-    b = []
-
-    for i in range(filas):
-
-        valor = modulo_matrices.asking_for_input(
-            f"b[{i + 1}]: "
+def resolver_sistema_inversa_paso_a_paso(A, b_mat):
+    """
+    Resuelve Ax = b mediante x = A⁻¹ · b.
+    Devuelve: (x_matriz, procedimiento_str)
+    """
+    if A.rows != A.columns:
+        raise ValueError(
+            "La matriz A debe ser cuadrada (n x n) para resolver mediante matriz inversa."
         )
+    if A.rows != b_mat.rows:
+        raise ValueError("Las dimensiones de A y b no son compatibles.")
 
-        b.append(valor)
-
-    return A, b
-
-
-def resolver_sistema():
-
-    encabezado()
-
-    A, b = crear_sistema()
-
-    matriz_original = [
-        fila[:]
-        for fila in A.array
+    pasos = [
+        "======================================================",
+        "   RESOLUCIÓN DE SISTEMA Ax = b POR MATRIZ INVERSA",
+        "   Fórmula: x = A⁻¹ · b",
+        "======================================================",
     ]
 
-    A.add_vector_b(b)
+    inv_A, pas_inv = A.inversa_gauss_jordan_paso_a_paso()
+    pasos.append(pas_inv)
 
-    print("\n--- MATRIZ AUMENTADA [A | b] ---")
+    x = inv_A.multiplicar(b_mat)
+    pasos.append("\n--- MULTIPLICACIÓN x = A⁻¹ · b ---")
+    pasos.append(f"A⁻¹ · b =\n{x}")
 
-    print(
-        modulo_matrices.format_matrix(
-            A.array
-        )
-    )
+    pasos.append("\nSolución del sistema:")
+    for j in range(x.rows):
+        pasos.append(f"  x_{j + 1} = {x.array[j][0]}")
 
-    (
-        reducido,
-        pivotes,
-        libres,
-        soluciones,
-        forma_vectorial
-    ) = gauss_jordan(A)
-
-    print(
-        "\n--- MATRIZ REDUCIDA ---"
-    )
-
-    print(
-        modulo_matrices.format_matrix(
-            reducido
-        )
-    )
-
-    print(
-        f"\nCantidad de pivotes: "
-        f"{len(pivotes)}"
-    )
-
-    print(
-        f"Variables libres: "
-        f"{len(libres)}"
-    )
-
-    if soluciones is not None:
-
-        print("\n[RESULTADO]")
-        print("El sistema tiene SOLUCIÓN ÚNICA.")
-
-        print("\nValores de las variables:")
-
-        for i, solucion in enumerate(
-            soluciones
-        ):
-
-            subindice = to_subscript(
-                i + 1
-            )
-
-            print(
-                f"x{subindice} = {solucion}"
-            )
-
-        print("\n--- VERIFICACIÓN ---")
-
-        verificar_solucion(
-            matriz_original,
-            b,
-            soluciones
-        )
-
-    elif forma_vectorial is not None:
-
-        print("\n[RESULTADO]")
-        print(
-            "El sistema tiene INFINITAS SOLUCIONES."
-        )
-
-        print("\nForma vectorial:")
-        print(forma_vectorial)
-
-    else:
-
-        print("\n[RESULTADO]")
-        print("El sistema es INCONSISTENTE.")
-        print("No existe ninguna solución.")
-
-
-def verificar_homogeneidad():
-
-    encabezado()
-
-    A, b = crear_sistema()
-
-    if es_homogeneo(b):
-
-        print("\n[RESULTADO]")
-        print("El sistema ES HOMOGÉNEO.")
-        print("Tiene la forma Ax = 0.")
-
-    else:
-
-        print("\n[RESULTADO]")
-        print("El sistema NO ES HOMOGÉNEO.")
-        print(
-            "El vector b contiene elementos "
-            "diferentes de cero."
-        )
-
-
-def menu_sistemas():
-
-    while True:
-
-        encabezado()
-
-        print("1. Resolver sistema Ax = b")
-        print("2. Verificar sistema homogéneo")
-        print("0. Ver Teoremas Clave del Módulo")
-        print("9. Regresar al menú principal")
-
-        opcion = modulo_matrices.asking_for_input(
-            "\nSeleccione una opción: ",
-            type=int
-        )
-
-        if opcion == 1:
-
-            resolver_sistema()
-
-        elif opcion == 2:
-
-            verificar_homogeneidad()
-
-        elif opcion == 0:
-
-            resumen_teoremas.teoremas_sistemas()
-
-        elif opcion == 9:
-
-            break
-
-        else:
-
-            print("\n[ERROR] Opción no válida.")
+    return x, "\n".join(pasos)

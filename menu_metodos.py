@@ -21,6 +21,11 @@ try:
 except ImportError:
     modulo_errores = None
 
+try:
+    from modulos import modulo_jacobi_seidel
+except ImportError:
+    modulo_jacobi_seidel = None
+
 
 def construir_ventana(ventana, root_menu):
     ventana.title("Módulo de Métodos Numéricos")
@@ -59,6 +64,12 @@ def construir_ventana(ventana, root_menu):
         else:
             messagebox.showerror("Error", "No se encontró el archivo modulos/modulo_errores.py")
 
+    def lanzar_sistemas():
+        if modulo_jacobi_seidel:
+            modulo_jacobi_seidel.abrir_gui(ventana)
+        else:
+            messagebox.showerror("Error", "No se encontró el archivo modulos/modulo_jacobi_seidel.py")
+
     def volver():
         ventana.destroy()
         root_menu.deiconify()
@@ -69,6 +80,7 @@ def construir_ventana(ventana, root_menu):
                                                                                                              ipady=5)
     ttk.Button(ventana, text="4. Errores Numéricos y Punto Flotante", width=40, command=lanzar_errores).pack(pady=10,
                                                                                                              ipady=5)
-
+    ttk.Button(ventana, text="5. Sistemas: Jacobi y Gauss-Seidel", width=40, command=lanzar_sistemas).pack(pady=10,
+                                                                                                           ipady=5)
     tk.Label(ventana, text="").pack(pady=5)
     ttk.Button(ventana, text="Volver al Menú Principal", width=40, command=volver).pack(pady=10, ipady=5)

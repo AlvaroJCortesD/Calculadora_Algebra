@@ -26,6 +26,11 @@ try:
 except ImportError:
     modulo_jacobi_seidel = None
 
+try:
+    from modulos import modulo_newton_raphson
+except ImportError:
+    modulo_newton_raphson = None
+
 
 def construir_ventana(ventana, root_menu):
     ventana.title("Módulo de Métodos Numéricos")
@@ -70,9 +75,16 @@ def construir_ventana(ventana, root_menu):
         else:
             messagebox.showerror("Error", "No se encontró el archivo modulos/modulo_jacobi_seidel.py")
 
+    def lanzar_newton():
+        if modulo_newton_raphson:
+            modulo_newton_raphson.abrir_gui(ventana)
+        else:
+            messagebox.showerror("Error", "No se encontró el archivo modulos/modulo_newton_raphson.py")
+
     def volver():
         ventana.destroy()
         root_menu.deiconify()
+
 
     ttk.Button(ventana, text="1. Método de Bisección", width=40, command=lanzar_biseccion).pack(pady=10, ipady=5)
     ttk.Button(ventana, text="2. Graficador de funciones", width=40, command=lanzar_graficador).pack(pady=10, ipady=5)
@@ -82,5 +94,7 @@ def construir_ventana(ventana, root_menu):
                                                                                                              ipady=5)
     ttk.Button(ventana, text="5. Sistemas: Jacobi y Gauss-Seidel", width=40, command=lanzar_sistemas).pack(pady=10,
                                                                                                            ipady=5)
+    ttk.Button(ventana, text="6. Método Abierto: Newton-Raphson", width=40, command=lanzar_newton).pack(pady=10,
+                                                                                                        ipady=5)
     tk.Label(ventana, text="").pack(pady=5)
     ttk.Button(ventana, text="Volver al Menú Principal", width=40, command=volver).pack(pady=10, ipady=5)

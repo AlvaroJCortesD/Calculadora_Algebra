@@ -12,7 +12,7 @@ def evaluar_funcion(expr, x):
 def abrir_gui(parent):
     win = tk.Toplevel(parent)
     win.title("Método de Bisección")
-    win.geometry("700x500")
+    win.geometry("760x560")
     win.grab_set()
 
     frame_inputs = tk.Frame(win)
@@ -38,7 +38,7 @@ def abrir_gui(parent):
     ent_tol.insert(0, "0.001")
     ent_tol.grid(row=0, column=7, padx=5, pady=5)
 
-    txt_salida = tk.Text(win, height=20, font=("Consolas", 10), state=tk.DISABLED)
+    txt_salida = tk.Text(win, height=22, font=("Consolas", 10), state=tk.DISABLED)
     txt_salida.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
     def calcular():
@@ -51,44 +51,85 @@ def abrir_gui(parent):
             b = float(ent_b.get())
             tol = float(ent_tol.get())
 
+            if a >= b:
+                messagebox.showerror("Error", "El límite 'a' debe ser menor que 'b'.")
+                return
+            if tol <= 0:
+                messagebox.showerror("Error", "La tolerancia debe ser mayor que cero.")
+                return
+
             fa = evaluar_funcion(func, a)
             fb = evaluar_funcion(func, b)
+
+            txt_salida.insert(tk.END, "=== VERIFICACIÓN INICIAL (TEOREMA DE BOLZANO) ===\n")
+            txt_salida.insert(tk.END, f"f({a:.6f}) = {fa:.6f}\n")
+            txt_salida.insert(tk.END, f"f({b:.6f}) = {fb:.6f}\n")
+            txt_salida.insert(tk.END, f"f(a) * f(b) = {fa * fb:.6f}\n\n")
 
             if fa * fb >= 0:
                 messagebox.showerror("Error", "f(a) y f(b) deben tener signos opuestos.")
                 return
 
-            encabezado = f"{'Iter':<5} | {'a':<8} | {'b':<8} | {'c':<8} | {'f(c)':<10} | {'Error':<8}\n"
-            txt_salida.insert(tk.END, encabezado)
-            txt_salida.insert(tk.END, "-" * 65 + "\n")
+            txt_salida.insert(tk.END, "=== PASO A PASO POR ITERACIÓN ===\n")
 
+            tabla = []
             iteracion = 1
             error = abs(b - a)
-            c_ant = a
+            c_ant = None
+            c = None
 
-            while error > tol and iteracion <= 100:
-                c = (a + b) / 2
+            while iteracion <= 100:
+                c = (a + b) / 2.0
+                fa = evaluar_funcion(func, a)
                 fc = evaluar_funcion(func, c)
+                producto = fa * fc
 
-                if iteracion > 1:
+                if c_ant is not None:
                     error = abs(c - c_ant)
 
-                linea = f"{iteracion:<5} | {a:<8.4f} | {b:<8.4f} | {c:<8.4f} | {fc:<10.4f} | {error:<8.4f}\n"
-                txt_salida.insert(tk.END, linea)
+                txt_salida.insert(tk.END, f"\n--- Iteración {iteracion} ---\n")
+                txt_salida.insert(tk.END, f"  1. Intervalo actual: [{a:.6f}, {b:.6f}]\n")
+                txt_salida.insert(tk.END, f"  2. Punto medio: c = ({a:.6f} + {b:.6f}) / 2 = {c:.6f}\n")
+                txt_salida.insert(tk.END, f"  3. Evaluaciones: f(a) = {fa:.6f} | f(c) = {fc:.6f}\n")
+                txt_salida.insert(tk.END, f"  4. Signo/Producto: f(a) * f(c) = {producto:.6f}\n")
 
-                if abs(fc) < 1e-10:
+                if producto < 0:
+                    txt_salida.insert(tk.END, "  5. Cambio de signo en [a, c] -> nuevo intervalo: [a, c], b pasa a valer c.\n")
+                    nuevo_a, nuevo_b = a, c
+                elif producto > 0:
+                    txt_salida.insert(tk.END, "  5. Cambio de signo en [c, b] -> nuevo intervalo: [c, b], a pasa a valer c.\n")
+                    nuevo_a, nuevo_b = c, b
+                else:
+                    txt_salida.insert(tk.END, "  5. f(c) = 0 -> raíz exacta encontrada.\n")
+                    error = 0.0
+                    nuevo_a, nuevo_b = a, b
+
+                if c_ant is not None and producto != 0:
+                    txt_salida.insert(tk.END, f"  6. Error |c_act - c_ant| = |{c:.6f} - {c_ant:.6f}| = {error:.6f}\n")
+                else:
+                    txt_salida.insert(tk.END, f"  6. Error inicial (ancho del intervalo): {error:.6f}\n")
+
+                tabla.append((iteracion, a, b, c, fc, error))
+
+                if producto == 0 or (c_ant is not None and error <= tol):
+                    txt_salida.insert(tk.END, f"  >> Criterio de parada cumplido en iteración {iteracion}.\n")
                     break
 
-                if fa * fc < 0:
-                    b = c
-                else:
-                    a = c
-                    fa = fc
-
+                a, b = nuevo_a, nuevo_b
                 c_ant = c
                 iteracion += 1
 
+            txt_salida.insert(tk.END, "\n=== TABLA RESUMEN ===\n")
+            encabezado = f"{'Iter':<5} | {'a':<10} | {'b':<10} | {'c':<10} | {'f(c)':<12} | {'Error':<10}\n"
+            txt_salida.insert(tk.END, encabezado)
+            txt_salida.insert(tk.END, "-" * 72 + "\n")
+            for row in tabla:
+                it, va, vb, vc, vfc, verr = row
+                txt_salida.insert(tk.END, f"{it:<5} | {va:<10.6f} | {vb:<10.6f} | {vc:<10.6f} | {vfc:<12.6e} | {verr:<10.6f}\n")
+
+            residuo = abs(evaluar_funcion(func, c))
             txt_salida.insert(tk.END, f"\nRaíz aproximada: {c:.6f}\n")
+            txt_salida.insert(tk.END, f"Residuo |f(c)|: {residuo:.6e}\n")
         except Exception as e:
             messagebox.showerror("Error de Cálculo", str(e))
         finally:

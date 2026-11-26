@@ -36,12 +36,13 @@ def evaluar_seguro(func, valor):
     return res_float
 
 
-def newton_raphson(f_num, df_num, x0, tol_pct, max_iter, eps_derivada=1e-12):
+def newton_raphson(f_num, df_num, x0, tol_pct, max_iter, limite_pasos=10, eps_derivada=1e-12):
     """
-    Implementación propia del método abierto de Newton-Raphson.
-    Retorna: diccionario con historial, aproximación final, residuo y estado.
+    Implementación propia del método abierto de Newton-Raphson con registro paso a paso.
+    Retorna: diccionario con historial, pasos detallados, aproximación final, residuo y estado.
     """
     historial = []
+    pasos = ["Fórmula iterativa: x_i = x_{i-1} - f(x_{i-1}) / f'(x_{i-1})\n"]
     xi = float(x0)
     estado = "Máximo de iteraciones alcanzado sin cumplir la tolerancia."
     convergio = False
@@ -49,12 +50,27 @@ def newton_raphson(f_num, df_num, x0, tol_pct, max_iter, eps_derivada=1e-12):
     tipo_error_final = "%"
 
     for i in range(1, max_iter + 1):
+        registrar_paso = (i <= limite_pasos)
+
+        if i == limite_pasos + 1:
+            pasos.append(
+                f"... [Se omiten los pasos detallados a partir de la iteración {i} para evitar saturación] ...\n"
+            )
+
         try:
             fxi = evaluar_seguro(f_num, xi)
             dfxi = evaluar_seguro(df_num, xi)
         except ValueError as err:
             estado = f"Detenido en iteración {i}: {err}"
+            pasos.append(f"--- Iteración {i} (x_{i-1} = {xi:.6f}) ---")
+            pasos.append(f"  [ERROR] {err}\n")
             break
+
+        if registrar_paso:
+            pasos.append(f"--- Iteración {i} (x_{i-1} = {xi:.6f}) ---")
+            pasos.append(f"  1. Evaluar función y derivada en x_{i-1} = {xi:.6f}:")
+            pasos.append(f"     f({xi:.6f})  = {fxi:.6f}")
+            pasos.append(f"     f'({xi:.6f}) = {dfxi:.6f}")
 
         # Control de derivada nula o demasiado cercana a cero antes de dividir
         if abs(dfxi) < eps_derivada:
@@ -71,22 +87,45 @@ def newton_raphson(f_num, df_num, x0, tol_pct, max_iter, eps_derivada=1e-12):
                 f"Detenido en iteración {i}: derivada nula o cercana a cero "
                 f"(|f'(x_i)| = {abs(dfxi):.2e} < {eps_derivada:.0e}). No es posible dividir."
             )
+            if not registrar_paso:
+                pasos.append(f"--- Iteración {i} (x_{i-1} = {xi:.6f}) ---")
+            pasos.append(
+                f"  2. [DETENIDO] Derivada nula o cercana a cero (|f'({xi:.6f})| = {abs(dfxi):.2e}). "
+                f"Recta tangente horizontal; división imposible.\n"
+            )
             break
 
         # Fórmula iterativa de Newton-Raphson
-        x_next = xi - (fxi / dfxi)
+        cociente = fxi / dfxi
+        x_next = xi - cociente
 
         if not np.isfinite(x_next):
             estado = f"Detenido en iteración {i}: la nueva aproximación no es finita."
+            pasos.append(f"  2. [DETENIDO] La nueva aproximación x_{i} no es finita.\n")
             break
 
         # Cálculo del error relativo aproximado porcentual (evitando división por cero si x_{i+1} == 0)
         if abs(x_next) > 1e-15:
             error_aprox = abs((x_next - xi) / x_next) * 100.0
             tipo_error = "% (relativo)"
+            err_formula_str = f"ε_a = |({x_next:.6f} - {xi:.6f}) / {x_next:.6f}| * 100 = {error_aprox:.6f}%"
+            comp_str = f"{error_aprox:.6f}% <= {tol_pct}%" if error_aprox <= tol_pct else f"{error_aprox:.6f}% > {tol_pct}%"
         else:
             error_aprox = abs(x_next - xi)
             tipo_error = "absoluto (x_{i+1}=0)"
+            err_formula_str = f"ε_a = |{x_next:.6f} - {xi:.6f}| = {error_aprox:.6f} (absoluto, x_{i} = 0)"
+            comp_str = f"{error_aprox:.6f} <= {tol_pct}" if error_aprox <= tol_pct else f"{error_aprox:.6f} > {tol_pct}"
+
+        if registrar_paso:
+            pasos.append(f"  2. Calcular siguiente aproximación x_{i}:")
+            pasos.append(f"     x_{i} = {xi:.6f} - ({fxi:.6f} / {dfxi:.6f})")
+            pasos.append(f"     x_{i} = {xi:.6f} - ({cociente:.6f}) = {x_next:.6f}")
+            pasos.append(f"  3. Calcular error aproximado:")
+            pasos.append(f"     {err_formula_str}")
+            if error_aprox <= tol_pct:
+                pasos.append(f"  4. Verificación ({comp_str}): ¡Criterio de parada cumplido!\n")
+            else:
+                pasos.append(f"  4. Verificación ({comp_str}): continúa iterando.\n")
 
         historial.append({
             "i": i,
@@ -106,6 +145,8 @@ def newton_raphson(f_num, df_num, x0, tol_pct, max_iter, eps_derivada=1e-12):
         if error_aprox <= tol_pct:
             estado = f"Convergencia alcanzada en la iteración {i} (error <= {tol_pct}%)."
             convergio = True
+            if not registrar_paso:
+                pasos.append(f">> Criterio de parada alcanzado en la iteración {i} ({comp_str}).\n")
             break
 
     # Evaluar residuo |f(x_aprox)| en la última aproximación válida
@@ -116,6 +157,7 @@ def newton_raphson(f_num, df_num, x0, tol_pct, max_iter, eps_derivada=1e-12):
 
     return {
         "historial": historial,
+        "pasos": "\n".join(pasos),
         "x_aprox": xi,
         "iteraciones": len(historial),
         "error_final": error_final,
@@ -129,7 +171,7 @@ def newton_raphson(f_num, df_num, x0, tol_pct, max_iter, eps_derivada=1e-12):
 def abrir_gui(parent):
     win = tk.Toplevel(parent)
     win.title("Programa 9: Método de Newton-Raphson")
-    win.geometry("950x700")
+    win.geometry("980x730")
     win.grab_set()
 
     # --- Panel de entradas ---
@@ -156,11 +198,16 @@ def abrir_gui(parent):
     ent_iter.insert(0, "50")
     ent_iter.grid(row=1, column=3, padx=5, pady=4)
 
+    tk.Label(frame_inputs, text="Mostrar N pasos:").grid(row=1, column=4, sticky="w", padx=5, pady=4)
+    ent_mostrar_n = ttk.Entry(frame_inputs, width=8)
+    ent_mostrar_n.insert(0, "10")
+    ent_mostrar_n.grid(row=1, column=5, padx=5, pady=4)
+
     tk.Label(
         frame_inputs,
         text="Ejemplos SymPy: x**3 - x - 2 | cos(x) - x | exp(-x) - x | x**2 - 4",
         fg="gray"
-    ).grid(row=2, column=0, columnspan=4, sticky="w", padx=5, pady=(4, 0))
+    ).grid(row=2, column=0, columnspan=6, sticky="w", padx=5, pady=(4, 0))
 
     # --- Área de resultados ---
     txt_salida = tk.Text(win, height=24, font=("Consolas", 9))
@@ -183,10 +230,13 @@ def abrir_gui(parent):
             x0 = float(ent_x0.get())
             tol = float(ent_tol.get())
             max_iter = int(ent_iter.get())
+            limite_pasos = int(ent_mostrar_n.get())
             if tol <= 0:
                 raise ValueError("La tolerancia debe ser un número positivo.")
             if max_iter <= 0:
                 raise ValueError("El máximo de iteraciones debe ser un entero positivo.")
+            if limite_pasos < 0:
+                raise ValueError("El número de pasos a mostrar no puede ser negativo.")
         except ValueError as e:
             messagebox.showerror("Error de Entrada", f"Verifica los parámetros numéricos:\n{e}")
             return
@@ -198,7 +248,7 @@ def abrir_gui(parent):
             messagebox.showerror("Error de Sintaxis", f"No se pudo interpretar f(x) con SymPy:\n{e}")
             return
 
-        resultado = newton_raphson(f_num, df_num, x0, tol, max_iter)
+        resultado = newton_raphson(f_num, df_num, x0, tol, max_iter, limite_pasos)
 
         # Guardar datos para graficar
         datos_grafica["expr"] = expr
@@ -219,7 +269,12 @@ def abrir_gui(parent):
             "Criterio de parada: ε_a(%) <= tolerancia (o error absoluto si x_{i+1} = 0) o máx. iteraciones.\n\n"
         )
 
+        # Paso a paso detallado por iteración
+        txt_salida.insert(tk.END, f"=== PASO A PASO POR ITERACIÓN (MÁX. {limite_pasos} PASOS) ===\n")
+        txt_salida.insert(tk.END, resultado["pasos"] + "\n")
+
         # Tabla de iteraciones con Pandas
+        txt_salida.insert(tk.END, "=== TABLA RESUMEN DE ITERACIONES ===\n")
         if resultado["historial"]:
             df = pd.DataFrame(resultado["historial"])
             pd.set_option('display.max_columns', None)
@@ -234,7 +289,7 @@ def abrir_gui(parent):
         else:
             txt_salida.insert(tk.END, "No se completaron iteraciones.\n\n")
 
-        # Resumen final (sin etiquetar como raíz exacta)
+        # Resumen final
         txt_salida.insert(tk.END, "=== RESUMEN DE RESULTADOS ===\n")
         txt_salida.insert(tk.END, f"Estado del proceso    : {resultado['estado']}\n")
         txt_salida.insert(tk.END, f"Iteraciones realizadas: {resultado['iteraciones']}\n")
@@ -301,9 +356,7 @@ def abrir_gui(parent):
             fxi = fila["f(x_i)"]
             x_next = fila["x_{i+1}"]
             if np.isfinite(xi) and np.isfinite(fxi) and np.isfinite(x_next):
-                # Línea vertical de referencia desde el eje X hasta (x_i, f(x_i))
                 plt.plot([xi, xi], [0, fxi], color="gray", linestyle=":", linewidth=1)
-                # Recta tangente desde (x_i, f(x_i)) hasta (x_{i+1}, 0)
                 etiqueta = "Rectas tangentes" if idx == 0 else None
                 plt.plot([xi, x_next], [fxi, 0], color="tab:orange", linestyle="--", linewidth=1.3, label=etiqueta)
                 plt.scatter([xi], [fxi], color="tab:orange", s=30, zorder=4)

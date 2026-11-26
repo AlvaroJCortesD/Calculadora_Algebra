@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-# --- FUNCIONES MATEMÁTICAS (Lógica interna intacta) ---
+# --- FUNCIONES MATEMÁTICAS ---
 
 def es_diagonal_dominante(A):
     n = A.shape[0]
@@ -32,47 +32,84 @@ def reordenar_matriz(A, b):
     return A_mod, b_mod
 
 
-def metodo_iterativo(A, b, x0, tol, max_iter, metodo='jacobi'):
+def generar_despejes(A, b):
+    n = len(b)
+    lineas = []
+    for i in range(n):
+        expr = f"{b[i]:g}"
+        for j in range(n):
+            if i != j and A[i, j] != 0:
+                coef = A[i, j]
+                if coef > 0:
+                    expr += f" - {coef:g}*x{j + 1}"
+                else:
+                    expr += f" + {abs(coef):g}*x{j + 1}"
+        lineas.append(f"  x{i + 1} = ( {expr} ) / {A[i, i]:g}")
+    return "\n".join(lineas)
+
+
+def metodo_iterativo(A, b, x0, tol, max_iter, metodo='jacobi', limite_pasos=5):
     n = len(b)
     x = x0.copy()
     historial = []
     errores = []
+    pasos = []
+
+    pasos.append(f"Vector inicial x^(0) = {np.round(x, 6).tolist()}\n")
 
     for k in range(1, max_iter + 1):
         x_new = np.zeros(n)
+        registrar_paso = (k <= limite_pasos)
+
+        if registrar_paso:
+            pasos.append(f"--- Iteración {k} ---")
+        elif k == limite_pasos + 1:
+            pasos.append(f"... [Se omiten los pasos detallados a partir de la iteración {k} para evitar saturación] ...\n")
+
         for i in range(n):
             suma = 0
+            terminos_str = []
             for j in range(n):
                 if i != j:
                     if metodo == 'jacobi':
-                        suma += A[i, j] * x[j]
+                        val = x[j]
                     elif metodo == 'seidel':
-                        if j < i:
-                            suma += A[i, j] * x_new[j]
-                        else:
-                            suma += A[i, j] * x[j]
+                        val = x_new[j] if j < i else x[j]
+                    suma += A[i, j] * val
+                    if registrar_paso:
+                        terminos_str.append(f"({A[i, j]:g})*({val:.6f})")
+
             x_new[i] = (b[i] - suma) / A[i, i]
+            if registrar_paso:
+                suma_str = " + ".join(terminos_str)
+                pasos.append(f"  x{i + 1}^({k}) = [ {b[i]:g} - ( {suma_str} ) ] / {A[i, i]:g} = {x_new[i]:.6f}")
 
         error = np.linalg.norm(x_new - x, np.inf)
         historial.append(np.round(x_new, 6))
         errores.append(error)
 
+        if registrar_paso:
+            pasos.append(f"  Error ||x^({k}) - x^({k - 1})||_inf = {error:.6f}\n")
+
         if np.isnan(error) or np.isinf(error):
-            return x_new, historial, errores, "Divergencia detectada"
+            pasos.append(f">> Divergencia detectada en la iteración {k}.\n")
+            return x_new, historial, errores, "Divergencia detectada", "\n".join(pasos)
 
         x = x_new
         if error <= tol:
-            return x, historial, errores, f"Convergencia en iteración {k}"
+            pasos.append(f">> Criterio de parada alcanzado en la iteración {k} (Error <= {tol}).\n")
+            return x, historial, errores, f"Convergencia en iteración {k}", "\n".join(pasos)
 
-    return x, historial, errores, "Máximo de iteraciones alcanzado"
+    pasos.append(f">> Máximo de iteraciones ({max_iter}) alcanzado.\n")
+    return x, historial, errores, "Máximo de iteraciones alcanzado", "\n".join(pasos)
 
 
-# --- INTERFAZ GRÁFICA RENOVADA ---
+# --- INTERFAZ GRÁFICA ---
 
 def abrir_gui(parent):
     win = tk.Toplevel(parent)
     win.title("Programa 8: Jacobi y Gauss-Seidel")
-    win.geometry("950x750")
+    win.geometry("980x760")
     win.grab_set()
 
     # 1. Marco Superior: Configuración de dimensiones y parámetros
@@ -80,19 +117,24 @@ def abrir_gui(parent):
     frame_config.pack(fill="x", padx=10, pady=5)
 
     tk.Label(frame_config, text="Dimensión (n x n):").pack(side=tk.LEFT)
-    spin_n = ttk.Spinbox(frame_config, from_=2, to=10, width=5)
+    spin_n = ttk.Spinbox(frame_config, from_=2, to=10, width=4)
     spin_n.set(3)
     spin_n.pack(side=tk.LEFT, padx=5)
 
-    tk.Label(frame_config, text="Tolerancia:").pack(side=tk.LEFT, padx=(15, 5))
-    ent_tol = ttk.Entry(frame_config, width=10)
+    tk.Label(frame_config, text="Tolerancia:").pack(side=tk.LEFT, padx=(12, 4))
+    ent_tol = ttk.Entry(frame_config, width=8)
     ent_tol.insert(0, "0.001")
     ent_tol.pack(side=tk.LEFT)
 
-    tk.Label(frame_config, text="Max Iter:").pack(side=tk.LEFT, padx=(15, 5))
+    tk.Label(frame_config, text="Max Iter:").pack(side=tk.LEFT, padx=(12, 4))
     ent_iter = ttk.Entry(frame_config, width=5)
     ent_iter.insert(0, "50")
     ent_iter.pack(side=tk.LEFT)
+
+    tk.Label(frame_config, text="Mostrar N pasos:").pack(side=tk.LEFT, padx=(12, 4))
+    ent_mostrar_n = ttk.Entry(frame_config, width=5)
+    ent_mostrar_n.insert(0, "5")
+    ent_mostrar_n.pack(side=tk.LEFT)
 
     # 2. Marco Central: Cuadrículas para la Matriz y Vectores
     frame_matrices = tk.Frame(win)
@@ -107,16 +149,18 @@ def abrir_gui(parent):
     frame_x0 = tk.LabelFrame(frame_matrices, text="Vector Inicial x(0)", padx=5, pady=5)
     frame_x0.pack(side=tk.LEFT, fill="y", padx=5)
 
-    # Listas para guardar las referencias de las cajitas de texto (tk.Entry)
     entradas_A = []
     entradas_b = []
     entradas_x0 = []
 
     def generar_cuadricula():
         """Limpia la pantalla y dibuja n x n cajitas de texto."""
-        for widget in frame_A.winfo_children(): widget.destroy()
-        for widget in frame_b.winfo_children(): widget.destroy()
-        for widget in frame_x0.winfo_children(): widget.destroy()
+        for widget in frame_A.winfo_children():
+            widget.destroy()
+        for widget in frame_b.winfo_children():
+            widget.destroy()
+        for widget in frame_x0.winfo_children():
+            widget.destroy()
         entradas_A.clear()
         entradas_b.clear()
         entradas_x0.clear()
@@ -142,7 +186,6 @@ def abrir_gui(parent):
             ent_x.insert(0, "0")
             entradas_x0.append(ent_x)
 
-        # Si es 3x3, colocar el caso de prueba por defecto
         if n == 3:
             valores_A = [[4, 1, -1], [2, 7, 1], [1, -3, 12]]
             valores_b = [3, 19, 31]
@@ -154,9 +197,8 @@ def abrir_gui(parent):
                     entradas_A[i][j].insert(0, str(valores_A[i][j]))
 
     btn_generar = ttk.Button(frame_config, text="Generar/Limpiar Cuadrícula", command=generar_cuadricula)
-    btn_generar.pack(side=tk.LEFT, padx=15)
+    btn_generar.pack(side=tk.LEFT, padx=12)
 
-    # Generar la cuadrícula 3x3 automáticamente al abrir la ventana
     generar_cuadricula()
 
     # 3. Consola de Salida
@@ -173,8 +215,12 @@ def abrir_gui(parent):
             n = int(spin_n.get())
             tol = float(ent_tol.get())
             max_iter = int(ent_iter.get())
+            limite_pasos = int(ent_mostrar_n.get())
 
-            # Extraer los datos de las cajitas de texto y pasarlos a NumPy
+            if limite_pasos < 0:
+                messagebox.showerror("Error", "El número de pasos a mostrar no puede ser negativo.")
+                return
+
             A = np.array([[float(entradas_A[i][j].get()) for j in range(n)] for i in range(n)])
             b = np.array([float(entradas_b[i].get()) for i in range(n)])
             x0 = np.array([float(entradas_x0[i].get()) for i in range(n)])
@@ -194,13 +240,21 @@ def abrir_gui(parent):
                     return
                 txt_salida.insert(tk.END, "[ÉXITO] Matriz reordenada correctamente.\n\n")
 
+            # Mostrar despeje de ecuaciones antes de iterar
+            txt_salida.insert(tk.END, "--- DESPEJE DE VARIABLES ---\n")
+            txt_salida.insert(tk.END, generar_despejes(A, b) + "\n\n")
+
             # Ejecutar Jacobi
-            x_jac, hist_jac, err_jac, estado_jac = metodo_iterativo(A, b, x0, tol, max_iter, 'jacobi')
+            x_jac, hist_jac, err_jac, estado_jac, pasos_jac = metodo_iterativo(
+                A, b, x0, tol, max_iter, 'jacobi', limite_pasos
+            )
             res_jac = np.linalg.norm(np.dot(A, x_jac) - b, np.inf)
             datos_grafica['jacobi'] = err_jac
 
             # Ejecutar Gauss-Seidel
-            x_sei, hist_sei, err_sei, estado_sei = metodo_iterativo(A, b, x0, tol, max_iter, 'seidel')
+            x_sei, hist_sei, err_sei, estado_sei, pasos_sei = metodo_iterativo(
+                A, b, x0, tol, max_iter, 'seidel', limite_pasos
+            )
             res_sei = np.linalg.norm(np.dot(A, x_sei) - b, np.inf)
             datos_grafica['seidel'] = err_sei
 
@@ -209,14 +263,17 @@ def abrir_gui(parent):
                 dif_jac = np.linalg.norm(x_jac - x_ref, np.inf)
                 dif_sei = np.linalg.norm(x_sei - x_ref, np.inf)
             except np.linalg.LinAlgError:
-                x_ref = "Sistema Singular"
                 dif_jac = dif_sei = "N/A"
 
-            for nombre, estado, hist, errs, x_final, res, dif in [
-                ("JACOBI", estado_jac, hist_jac, err_jac, x_jac, res_jac, dif_jac),
-                ("GAUSS-SEIDEL", estado_sei, hist_sei, err_sei, x_sei, res_sei, dif_sei)
+            for nombre, estado, hist, errs, x_final, res, dif, pasos in [
+                ("JACOBI", estado_jac, hist_jac, err_jac, x_jac, res_jac, dif_jac, pasos_jac),
+                ("GAUSS-SEIDEL", estado_sei, hist_sei, err_sei, x_sei, res_sei, dif_sei, pasos_sei)
             ]:
-                txt_salida.insert(tk.END, f"--- MÉTODO DE {nombre} ---\n")
+                txt_salida.insert(tk.END, f"================ MÉTODO DE {nombre} ================\n")
+                txt_salida.insert(tk.END, f"=== PASO A PASO (MÁX. {limite_pasos} ITERACIONES) ===\n")
+                txt_salida.insert(tk.END, pasos + "\n")
+
+                txt_salida.insert(tk.END, f"=== TABLA RESUMEN ({nombre}) ===\n")
                 txt_salida.insert(tk.END, f"Estado final: {estado}\n")
                 txt_salida.insert(tk.END, f"Residuo ||Ax-b||_inf: {res:.6e}\n")
                 txt_salida.insert(tk.END, f"Diferencia con solución numpy: {dif}\n\n")
